@@ -6,7 +6,7 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
-// --- Definice typů dat (zůstávají stejné) ---
+// --- Definice typů dat (přesunuto sem pro přehlednost) ---
 interface Client {
   firstName: string;
   lastName: string;
@@ -57,10 +57,10 @@ function DraggableReservation({ reservation }: { reservation: Reservation }) {
 }
 
 // Časový slot v kalendáři, na který lze přetáhnout rezervaci
-function DroppableHour({ hour, therapistId, children }: { hour: number, therapistId: number, children: React.ReactNode }) {
+function DroppableHour({ hour, day, therapistId, children }: { hour: number, day: Date, therapistId: number, children: React.ReactNode }) {
   const { setNodeRef } = useDroppable({
-    id: `slot-${therapistId}-${hour}`,
-    data: { hour, therapistId },
+    id: `slot-${therapistId}-${day.toISOString().split('T')[0]}-${hour}`,
+    data: { hour, therapistId, day },
   });
 
   return (
@@ -72,12 +72,7 @@ function DroppableHour({ hour, therapistId, children }: { hour: number, therapis
 
 
 // --- Hlavní komponenta kalendáře ---
-export function CalendarView({ therapists }: { therapists: Therapist[] }) {
-  const getReservationPosition = (startTime: string) => {
-    const start = new Date(startTime);
-    return (start.getHours() - 8 + start.getMinutes() / 60) * 60; // 60px per hour
-  };
-  
+export function CalendarView({ therapists, weekDays }: { therapists: Therapist[], weekDays: Date[] }) {
   const getReservationDuration = (startTime: string, endTime: string) => {
      const start = new Date(startTime);
      const end = new Date(endTime);
@@ -95,35 +90,40 @@ export function CalendarView({ therapists }: { therapists: Therapist[] }) {
         ))}
       </div>
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-px" style={{ backgroundColor: '#E1D7C6' }}>
-        {therapists.map((therapist) => (
-          <div key={therapist.id} className="relative" style={{ backgroundColor: 'white' }}>
-            <div className="sticky top-0 z-20 p-2 text-center border-b" style={{ backgroundColor: '#E1D7C6', borderColor: '#A4907C' }}>
-              <h3 className="font-serif font-semibold" style={{ color: '#3C3633' }}>
-                {therapist.firstName} {therapist.lastName}
-              </h3>
+      <div className="flex-1 grid grid-cols-7 gap-px" style={{ backgroundColor: '#E1D7C6' }}>
+        {weekDays.map((day) => {
+          const therapistForDay = therapists.find(t => t.reservationsAsTherapist.some(r => new Date(r.startTime).toDateString() === day.toDateString()));
+          const therapist = therapistForDay || therapists[0]; // Fallback pro zobrazení sloupců
+
+          return (
+            <div key={day.toISOString()} className="relative" style={{ backgroundColor: 'white' }}>
+              <div className="sticky top-0 z-20 p-2 text-center border-b" style={{ backgroundColor: '#E1D7C6', borderColor: '#A4907C' }}>
+                <h3 className="font-serif font-semibold" style={{ color: '#3C3633' }}>
+                  {day.toLocaleDateString('cs-CZ', { weekday: 'short', day: 'numeric' })}
+                </h3>
+              </div>
+              
+              <div className="relative h-[720px]">
+                {Array.from({ length: 12 }, (_, i) => i + 8).map(hour => (
+                  <DroppableHour key={hour} hour={hour} day={day} therapistId={therapist?.id || 0}>
+                    {therapist?.reservationsAsTherapist
+                      .filter(res => new Date(res.startTime).toDateString() === day.toDateString() && new Date(res.startTime).getHours() === hour)
+                      .map(res => (
+                        <div 
+                          key={res.id} 
+                          className="absolute left-1 right-1" 
+                          style={{ top: `${(new Date(res.startTime).getMinutes() / 60) * 60}px`, height: `${getReservationDuration(res.startTime, res.endTime)}px` }}
+                        >
+                          <DraggableReservation reservation={res} />
+                        </div>
+                      ))
+                    }
+                  </DroppableHour>
+                ))}
+              </div>
             </div>
-            
-            <div className="relative h-[720px]">
-              {Array.from({ length: 12 }, (_, i) => i + 8).map(hour => (
-                <DroppableHour key={hour} hour={hour} therapistId={therapist.id}>
-                  {therapist.reservationsAsTherapist
-                    .filter(res => new Date(res.startTime).getHours() === hour)
-                    .map(res => (
-                      <div 
-                        key={res.id} 
-                        className="absolute left-1 right-1" 
-                        style={{ top: `${(new Date(res.startTime).getMinutes() / 60) * 60}px`, height: `${getReservationDuration(res.startTime, res.endTime)}px` }}
-                      >
-                        <DraggableReservation reservation={res} />
-                      </div>
-                    ))
-                  }
-                </DroppableHour>
-              ))}
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   );
