@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navigation } from "@/components/layout/navigation"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { ClientList } from "@/components/crm/client-list"
@@ -11,139 +11,63 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Users, Plus, Search, Filter, UserCheck, Star, Calendar } from "lucide-react"
-
-// Mock client data with comprehensive profiles
-const mockClients = [
-  {
-    id: "client-1",
-    name: "Jana Nováková",
-    email: "jana.novakova@email.cz",
-    phone: "+420 123 456 789",
-    dateOfBirth: "1985-03-15",
-    address: "Masarykova 123, Jihlava",
-    registrationDate: "2024-01-15",
-    lastVisit: "2025-01-10",
-    totalVisits: 12,
-    totalSpent: 9600,
-    loyaltyPoints: 480,
-    status: "vip",
-    preferences: {
-      massagePressure: "silný",
-      favoriteTherapist: "Anna Krásná",
-      allergies: ["mandlový olej"],
-      notes: "Preferuje ranní termíny, má problémy s krční páteří",
-    },
-    visitHistory: [
-      {
-        id: "visit-1",
-        date: "2025-01-10",
-        service: "Relaxační masáž",
-        therapist: "Anna Krásná",
-        duration: 60,
-        price: 800,
-        notes: "Klient spokojen, doporučil silnější tlak",
-      },
-      {
-        id: "visit-2",
-        date: "2024-12-20",
-        service: "Aromaterapie",
-        therapist: "Lucie Harmonie",
-        duration: 45,
-        price: 600,
-        notes: "První aromaterapie, velmi pozitivní reakce",
-      },
-    ],
-    communications: [
-      {
-        id: "comm-1",
-        type: "email",
-        date: "2025-01-11",
-        subject: "Děkujeme za návštěvu",
-        status: "sent",
-      },
-      {
-        id: "comm-2",
-        type: "sms",
-        date: "2025-01-09",
-        subject: "Připomínka termínu zítra v 10:00",
-        status: "delivered",
-      },
-    ],
-  },
-  {
-    id: "client-2",
-    name: "Petr Svoboda",
-    email: "petr.svoboda@email.cz",
-    phone: "+420 987 654 321",
-    dateOfBirth: "1978-07-22",
-    address: "Havlíčkova 45, Jihlava",
-    registrationDate: "2024-03-10",
-    lastVisit: "2025-01-08",
-    totalVisits: 8,
-    totalSpent: 6400,
-    loyaltyPoints: 320,
-    status: "regular",
-    preferences: {
-      massagePressure: "střední",
-      favoriteTherapist: "Pavel Wellness",
-      allergies: [],
-      notes: "Sportovec, zaměřit se na regeneraci svalů",
-    },
-    visitHistory: [
-      {
-        id: "visit-3",
-        date: "2025-01-08",
-        service: "Sportovní masáž",
-        therapist: "Pavel Wellness",
-        duration: 90,
-        price: 1200,
-        notes: "Regenerace po maratonu, dobrá reakce",
-      },
-    ],
-    communications: [],
-  },
-  {
-    id: "client-3",
-    name: "Marie Dvořáková",
-    email: "marie.dvorakova@email.cz",
-    phone: "+420 555 123 456",
-    dateOfBirth: "1992-11-08",
-    address: "Žižkova 78, Jihlava",
-    registrationDate: "2024-11-20",
-    lastVisit: "2024-12-15",
-    totalVisits: 3,
-    totalSpent: 1800,
-    loyaltyPoints: 90,
-    status: "new",
-    preferences: {
-      massagePressure: "jemný",
-      favoriteTherapist: "",
-      allergies: ["citrusy"],
-      notes: "Nový klient, citlivá pokožka",
-    },
-    visitHistory: [
-      {
-        id: "visit-4",
-        date: "2024-12-15",
-        service: "Kosmetické ošetření",
-        therapist: "Pavel Wellness",
-        duration: 90,
-        price: 1200,
-        notes: "První kosmetické ošetření, spokojená",
-      },
-    ],
-    communications: [],
-  },
-]
+import { clientsApi } from "@/lib/api/clients"
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState(mockClients)
+  const [clients, setClients] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedClient, setSelectedClient] = useState<string | null>(null)
   const [isClientModalOpen, setIsClientModalOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"list" | "profile">("list")
+
+  useEffect(() => {
+    loadClientsData()
+  }, [])
+
+  const loadClientsData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      console.log("[v0] Loading clients data from API...")
+
+      const clientsData = await clientsApi.getAll()
+      console.log("[v0] Loaded clients:", clientsData)
+
+      const transformedClients = clientsData.map((client: any) => ({
+        id: client.id,
+        name: `${client.firstName} ${client.lastName}`,
+        email: client.email,
+        phone: client.phone || "N/A",
+        dateOfBirth: client.dateOfBirth,
+        address: client.address,
+        registrationDate: client.createdAt?.split("T")[0] || new Date().toISOString().split("T")[0],
+        lastVisit: client.lastVisit || client.createdAt?.split("T")[0] || new Date().toISOString().split("T")[0],
+        totalVisits: client.totalVisits || 0,
+        totalSpent: client.totalSpent || 0,
+        loyaltyPoints: client.loyaltyPoints || 0,
+        status: client.status || "new",
+        preferences: client.preferences || {
+          massagePressure: "",
+          favoriteTherapist: "",
+          allergies: [],
+          notes: "",
+        },
+        visitHistory: client.visitHistory || [],
+        communications: client.communications || [],
+      }))
+
+      setClients(transformedClients)
+    } catch (err) {
+      console.error("[v0] Error loading clients data:", err)
+      setError(err instanceof Error ? err.message : "Chyba při načítání klientů")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const filteredClients = clients.filter((client) => {
     const matchesSearch =
@@ -161,7 +85,7 @@ export default function ClientsPage() {
     new: clients.filter((c) => c.status === "new").length,
     regular: clients.filter((c) => c.status === "regular").length,
     vip: clients.filter((c) => c.status === "vip").length,
-    totalRevenue: clients.reduce((sum, c) => sum + c.totalSpent, 0),
+    totalRevenue: clients.reduce((sum: number, c: any) => sum + (c.totalSpent || 0), 0),
   }
 
   const handleClientSelect = (clientId: string) => {
@@ -174,27 +98,56 @@ export default function ClientsPage() {
     setIsClientModalOpen(true)
   }
 
-  const handleClientCreate = (clientData: any) => {
-    const newClient = {
-      id: `client-${Date.now()}`,
-      ...clientData,
-      registrationDate: new Date().toISOString().split("T")[0],
-      totalVisits: 0,
-      totalSpent: 0,
-      loyaltyPoints: 0,
-      status: "new" as const,
-      visitHistory: [],
-      communications: [],
+  const handleClientCreate = async (clientData: any) => {
+    try {
+      console.log("[v0] Creating new client:", clientData)
+
+      const newClient = await clientsApi.create({
+        firstName: clientData.name.split(" ")[0] || clientData.firstName,
+        lastName: clientData.name.split(" ").slice(1).join(" ") || clientData.lastName,
+        email: clientData.email,
+        phone: clientData.phone,
+        dateOfBirth: clientData.dateOfBirth,
+        address: clientData.address,
+        preferences: clientData.preferences,
+      })
+
+      console.log("[v0] Client created successfully:", newClient)
+
+      await loadClientsData()
+
+      setIsClientModalOpen(false)
+      setEditingClient(null)
+    } catch (err) {
+      console.error("[v0] Error creating client:", err)
+      setError(err instanceof Error ? err.message : "Chyba při vytváření klienta")
     }
-    setClients([...clients, newClient])
-    setIsClientModalOpen(false)
-    setEditingClient(null)
   }
 
-  const handleClientUpdate = (clientId: string, clientData: any) => {
-    setClients(clients.map((c) => (c.id === clientId ? { ...c, ...clientData } : c)))
-    setIsClientModalOpen(false)
-    setEditingClient(null)
+  const handleClientUpdate = async (clientId: string, clientData: any) => {
+    try {
+      console.log("[v0] Updating client:", clientId, clientData)
+
+      await clientsApi.update(clientId, {
+        firstName: clientData.name.split(" ")[0] || clientData.firstName,
+        lastName: clientData.name.split(" ").slice(1).join(" ") || clientData.lastName,
+        email: clientData.email,
+        phone: clientData.phone,
+        dateOfBirth: clientData.dateOfBirth,
+        address: clientData.address,
+        preferences: clientData.preferences,
+      })
+
+      console.log("[v0] Client updated successfully")
+
+      await loadClientsData()
+
+      setIsClientModalOpen(false)
+      setEditingClient(null)
+    } catch (err) {
+      console.error("[v0] Error updating client:", err)
+      setError(err instanceof Error ? err.message : "Chyba při aktualizaci klienta")
+    }
   }
 
   const getStatusColor = (status: string) => {
@@ -221,6 +174,48 @@ export default function ClientsPage() {
       default:
         return status
     }
+  }
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+          <Navigation />
+          <main className="container mx-auto px-4 py-8">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-700 mx-auto mb-4"></div>
+                <p className="text-stone-600">Načítám klienty...</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </ProtectedRoute>
+    )
+  }
+
+  if (error) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+          <Navigation />
+          <main className="container mx-auto px-4 py-8">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="text-red-600 mb-4">
+                  <Users className="w-12 h-12 mx-auto" />
+                </div>
+                <h3 className="text-lg font-medium text-stone-800 mb-2">Chyba při načítání klientů</h3>
+                <p className="text-stone-600 mb-4">{error}</p>
+                <Button onClick={loadClientsData} className="bg-amber-700 hover:bg-amber-800">
+                  Zkusit znovu
+                </Button>
+              </div>
+            </div>
+          </main>
+        </div>
+      </ProtectedRoute>
+    )
   }
 
   return (

@@ -9,50 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, Plus, Filter, Users, Clock } from "lucide-react"
-
-// Mock data for appointments
-const mockAppointments = [
-  {
-    id: "1",
-    title: "Jana Nováková - Relaxační masáž",
-    start: new Date(2025, 0, 16, 10, 0),
-    end: new Date(2025, 0, 16, 11, 0),
-    clientId: "client-1",
-    therapistId: "therapist-1",
-    serviceId: "service-1",
-    status: "confirmed" as const,
-    notes: "Preferuje silnější tlak",
-  },
-  {
-    id: "2",
-    title: "Petr Svoboda - Kosmetické ošetření",
-    start: new Date(2025, 0, 16, 11, 30),
-    end: new Date(2025, 0, 16, 12, 30),
-    clientId: "client-2",
-    therapistId: "therapist-2",
-    serviceId: "service-2",
-    status: "confirmed" as const,
-    notes: "",
-  },
-  {
-    id: "3",
-    title: "Marie Dvořáková - Sauna",
-    start: new Date(2025, 0, 16, 14, 0),
-    end: new Date(2025, 0, 16, 15, 0),
-    clientId: "client-3",
-    therapistId: "therapist-1",
-    serviceId: "service-3",
-    status: "pending" as const,
-    notes: "První návštěva",
-  },
-]
-
-const therapists = [
-  { id: "all", name: "Všichni terapeuti" },
-  { id: "therapist-1", name: "Anna Krásná" },
-  { id: "therapist-2", name: "Pavel Wellness" },
-  { id: "therapist-3", name: "Lucie Harmonie" },
-]
+import { reservationsApi } from "@/lib/api/reservations"
+import { servicesApi } from "@/lib/api/services"
+import { clientsApi } from "@/lib/api/clients"
+import { therapistsApi } from "@/lib/api/therapists"
+import type { Reservation, Service, Client, Therapist } from "@/lib/api/types"
 
 const rooms = [
   { id: "all", name: "Všechny místnosti" },
@@ -63,7 +24,10 @@ const rooms = [
 ]
 
 export default function CalendarPage() {
-  const [appointments, setAppointments] = useState(mockAppointments)
+  const [appointments, setAppointments] = useState<Reservation[]>([])
+  const [services, setServices] = useState<Service[]>([])
+  const [clients, setClients] = useState<Client[]>([])
+  const [therapists, setTherapists] = useState<Therapist[]>([])
   const [selectedTherapist, setSelectedTherapist] = useState("all")
   const [selectedRoom, setSelectedRoom] = useState("all")
   const [viewType, setViewType] = useState<"day" | "week" | "month">("week")
@@ -71,64 +35,84 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [debugMode, setDebugMode] = useState(false)
   const [apiStatus, setApiStatus] = useState<string>("")
-
-  const filteredAppointments = appointments.filter((appointment) => {
-    if (selectedTherapist !== "all" && appointment.therapistId !== selectedTherapist) {
-      return false
-    }
-    // Room filtering would be implemented based on appointment room data
-    return true
-  })
-
-  const todayStats = {
-    total: appointments.filter((apt) => {
-      const today = new Date()
-      return apt.start.toDateString() === today.toDateString()
-    }).length,
-    confirmed: appointments.filter((apt) => {
-      const today = new Date()
-      return apt.start.toDateString() === today.toDateString() && apt.status === "confirmed"
-    }).length,
-    pending: appointments.filter((apt) => {
-      const today = new Date()
-      return apt.start.toDateString() === today.toDateString() && apt.status === "pending"
-    }).length,
-  }
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadAppointmentsFromDatabase()
+    loadInitialData()
   }, [])
 
-  const saveAppointmentToDatabase = async (appointment: any) => {
+  const loadInitialData = async () => {
     try {
-      console.log("[v0] Saving appointment to database:", appointment)
+      setLoading(true)
+      setApiStatus("Načítám data...")
+
+      // Load all data in parallel
+      const [reservationsData, servicesData, clientsData] = await Promise.all([
+        reservationsApi.getAll(),
+        servicesApi.getAll(),
+        clientsApi.getAll(),
+      ])
+
+      setAppointments(reservationsData)
+      setServices(servicesData)
+      setClients(clientsData)
+
+      // Load therapists from therapists API
+      if (servicesData.length > 0) {
+        const therapistsData = await therapistsApi.getAll()
+        setTherapists([
+          {
+            id: "all",
+            firstName: "Všichni",
+            lastName: "terapeuti",
+            email: "",
+            phone: "",
+            specializations: [],
+            isActive: true,
+            workingHours: {},
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          ...therapistsData,
+        ])
+      }
+
+      setApiStatus(
+        `✅ Načteno ${reservationsData.length} rezervací, ${servicesData.length} služeb, ${clientsData.length} klientů`,
+      )
+    } catch (error) {
+      console.error("[v0] Error loading initial data:", error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      setApiStatus(`❌ Chyba při načítání: ${errorMessage}`)
+
+      // Fallback to mock data if API fails
+      setAppointments([])
+      setServices([])
+      setClients([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const saveAppointmentToDatabase = async (appointmentData: any) => {
+    try {
+      console.log("[v0] Saving appointment to database:", appointmentData)
       setApiStatus("Ukládám do databáze...")
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/reservations`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`, // Assuming JWT token
-        },
-        body: JSON.stringify({
-          clientId: appointment.clientId,
-          therapistId: appointment.therapistId,
-          serviceId: appointment.serviceId,
-          startTime: appointment.start.toISOString(),
-          endTime: appointment.end.toISOString(),
-          status: appointment.status,
-          notes: appointment.notes,
-        }),
+      const savedReservation = await reservationsApi.create({
+        clientId: appointmentData.clientId,
+        serviceId: appointmentData.serviceId,
+        therapistId: appointmentData.therapistId,
+        startTime: appointmentData.start.toISOString(),
+        endTime: appointmentData.end
+          ? appointmentData.end.toISOString()
+          : new Date(appointmentData.start.getTime() + 60 * 60 * 1000).toISOString(), // Default to 1 hour if no end time
+        notes: appointmentData.notes,
       })
 
-      if (response.ok) {
-        const savedAppointment = await response.json()
-        console.log("[v0] Appointment saved successfully:", savedAppointment)
-        setApiStatus(`✅ Rezervace uložena do databáze (ID: ${savedAppointment.id})`)
-        return savedAppointment
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
+      console.log("[v0] Appointment saved successfully:", savedReservation)
+      setApiStatus(`✅ Rezervace uložena do databáze (ID: ${savedReservation.id})`)
+      return savedReservation
     } catch (error) {
       console.error("[v0] Error saving appointment:", error)
       const errorMessage = error instanceof Error ? error.message : String(error)
@@ -142,39 +126,60 @@ export default function CalendarPage() {
       console.log("[v0] Loading appointments from database")
       setApiStatus("Načítám z databáze...")
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/reservations`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
+      const dbReservations = await reservationsApi.getAll()
 
-      if (response.ok) {
-        const dbAppointments = await response.json()
-        console.log("[v0] Loaded appointments from database:", dbAppointments)
-        setApiStatus(`✅ Načteno ${dbAppointments.length} rezervací z databáze`)
+      console.log("[v0] Loaded appointments from database:", dbReservations)
+      setApiStatus(`✅ Načteno ${dbReservations.length} rezervací z databáze`)
 
-        // Convert database format to frontend format
-        const formattedAppointments = dbAppointments.map((apt: any) => ({
-          id: apt.id,
-          title: `${apt.client?.name || "Neznámý klient"} - ${apt.service?.name || "Neznámá služba"}`,
-          start: new Date(apt.startTime),
-          end: new Date(apt.endTime),
-          clientId: apt.clientId,
-          therapistId: apt.therapistId,
-          serviceId: apt.serviceId,
-          status: apt.status,
-          notes: apt.notes || "",
-        }))
-
-        setAppointments(formattedAppointments)
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
+      setAppointments(dbReservations)
     } catch (error) {
       console.error("[v0] Error loading appointments:", error)
       const errorMessage = error instanceof Error ? error.message : String(error)
       setApiStatus(`❌ Chyba při načítání: ${errorMessage}`)
     }
+  }
+
+  const filteredAppointments = appointments.filter((appointment) => {
+    if (selectedTherapist !== "all" && appointment.therapistId !== selectedTherapist) {
+      return false
+    }
+    return true
+  })
+
+  const todayStats = {
+    total: appointments.filter((apt) => {
+      const today = new Date()
+      const aptDate = new Date(apt.startTime)
+      return aptDate.toDateString() === today.toDateString()
+    }).length,
+    confirmed: appointments.filter((apt) => {
+      const today = new Date()
+      const aptDate = new Date(apt.startTime)
+      return aptDate.toDateString() === today.toDateString() && apt.status === "confirmed"
+    }).length,
+    pending: appointments.filter((apt) => {
+      const today = new Date()
+      const aptDate = new Date(apt.startTime)
+      return aptDate.toDateString() === today.toDateString() && apt.status === "pending"
+    }).length,
+  }
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+          <Navigation />
+          <main className="container mx-auto px-4 py-8">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-700 mx-auto mb-4"></div>
+                <p className="text-stone-600">Načítám kalendář...</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </ProtectedRoute>
+    )
   }
 
   return (
@@ -224,7 +229,7 @@ export default function CalendarPage() {
                 <Users className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-stone-800">3</div>
+                <div className="text-2xl font-bold text-stone-800">{therapists.length - 1}</div>
                 <p className="text-xs text-stone-600">Dnes v provozu</p>
               </CardContent>
             </Card>
@@ -252,7 +257,13 @@ export default function CalendarPage() {
                     <strong>API Status:</strong> <span className="ml-2">{apiStatus}</span>
                   </div>
                   <div>
-                    <strong>Počet rezervací v paměti:</strong> <span className="ml-2">{appointments.length}</span>
+                    <strong>Počet rezervací:</strong> <span className="ml-2">{appointments.length}</span>
+                  </div>
+                  <div>
+                    <strong>Počet služeb:</strong> <span className="ml-2">{services.length}</span>
+                  </div>
+                  <div>
+                    <strong>Počet klientů:</strong> <span className="ml-2">{clients.length}</span>
                   </div>
                   <div>
                     <strong>Backend URL:</strong>{" "}
@@ -264,15 +275,6 @@ export default function CalendarPage() {
                       {JSON.stringify(appointments, null, 2)}
                     </pre>
                   </details>
-                  <div className="text-sm text-amber-700">
-                    <strong>Jak ověřit data v databázi:</strong>
-                    <ul className="list-disc list-inside mt-2 space-y-1">
-                      <li>Otevřete Developer Tools (F12) → Network tab</li>
-                      <li>Vytvořte novou rezervaci a sledujte POST request na /api/reservations</li>
-                      <li>Zkontrolujte response - měl by obsahovat ID z databáze</li>
-                      <li>Klikněte "Obnovit z DB" pro načtení dat z databáze</li>
-                    </ul>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -295,7 +297,7 @@ export default function CalendarPage() {
                     <SelectContent>
                       {therapists.map((therapist) => (
                         <SelectItem key={therapist.id} value={therapist.id}>
-                          {therapist.name}
+                          {therapist.firstName} {therapist.lastName}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -352,7 +354,17 @@ export default function CalendarPage() {
           <Card className="border-stone-200 bg-white/80">
             <CardContent className="p-6">
               <CalendarView
-                appointments={filteredAppointments}
+                appointments={filteredAppointments.map((apt) => ({
+                  id: apt.id,
+                  title: `${apt.client?.firstName || "Neznámý"} ${apt.client?.lastName || "klient"} - ${apt.service?.name || "Neznámá služba"}`,
+                  start: new Date(apt.startTime),
+                  end: new Date(apt.endTime),
+                  clientId: apt.clientId,
+                  therapistId: apt.therapistId,
+                  serviceId: apt.serviceId,
+                  status: apt.status,
+                  notes: apt.notes || "",
+                }))}
                 viewType={viewType}
                 onAppointmentClick={(appointment) => {
                   console.log("Clicked appointment:", appointment)
@@ -376,49 +388,26 @@ export default function CalendarPage() {
           selectedDate={selectedDate}
           onBookingCreate={async (booking) => {
             try {
-              const newAppointment = {
-                id: `booking-${Date.now()}`,
-                title: `${booking.clientName} - ${booking.serviceName}`,
-                start: booking.startTime,
-                end: booking.endTime,
+              const newReservationData = {
                 clientId: booking.clientId,
-                therapistId: booking.therapistId,
                 serviceId: booking.serviceId,
-                status: "confirmed" as const,
+                therapistId: booking.therapistId,
+                start: booking.startTime,
+                end: booking.endTime || new Date(booking.startTime.getTime() + 60 * 60 * 1000), // Default to 1 hour
                 notes: booking.notes || "",
               }
 
               // Save to database
-              const savedAppointment = await saveAppointmentToDatabase(newAppointment)
+              const savedReservation = await saveAppointmentToDatabase(newReservationData)
 
-              // Update local state with database response
-              setAppointments([
-                ...appointments,
-                {
-                  ...newAppointment,
-                  id: savedAppointment.id, // Use database ID
-                },
-              ])
+              // Reload appointments from database to get fresh data
+              await loadAppointmentsFromDatabase()
 
               setIsBookingModalOpen(false)
               setSelectedDate(null)
             } catch (error) {
-              // If database save fails, still add to local state for demo purposes
-              console.error("[v0] Database save failed, adding to local state only")
-              const newAppointment = {
-                id: `local-${Date.now()}`,
-                title: `${booking.clientName} - ${booking.serviceName}`,
-                start: booking.startTime,
-                end: booking.endTime,
-                clientId: booking.clientId,
-                therapistId: booking.therapistId,
-                serviceId: booking.serviceId,
-                status: "confirmed" as const,
-                notes: booking.notes || "",
-              }
-              setAppointments([...appointments, newAppointment])
-              setIsBookingModalOpen(false)
-              setSelectedDate(null)
+              console.error("[v0] Failed to create reservation:", error)
+              // Modal will show error message
             }
           }}
         />
