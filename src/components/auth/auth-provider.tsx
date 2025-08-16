@@ -3,71 +3,95 @@
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { apiClient } from "@/lib/api/client"
 
 interface User {
-  email: string
-  role: string
-  name: string
+  id: number;
+  email: string;
+  role: string;
+  name: string;
 }
 
 interface AuthContextType {
-  user: User | null
-  login: (email: string, password: string, role: string) => Promise<boolean>
-  logout: () => void
-  isLoading: boolean
+  user: User | null;
+  token: string | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    // Check for existing session on mount
-    const userData = localStorage.getItem("user")
-    if (userData) {
-      setUser(JSON.parse(userData))
-    }
-    setIsLoading(false)
-  }, [])
+    const storedToken = localStorage.getItem("authToken");
+    const storedUser = localStorage.getItem("user");
 
-  const login = async (email: string, password: string, role: string): Promise<boolean> => {
-    try {
-      // TODO: Replace with actual API call to backend
-      // For now, simulate authentication
-      if (email === "admin@salon-harmonie.cz" && password === "admin123") {
-        const userData = {
-          email,
-          role: role || "admin",
-          name: "Administrátor",
-        }
-
-        localStorage.setItem("user", JSON.stringify(userData))
-        setUser(userData)
-        return true
+    if (storedToken && storedUser) {
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        apiClient.setToken(storedToken);
+      } catch (e) {
+        // Pokud jsou data poškozena, smažeme je
+        localStorage.clear();
       }
-      return false
-    } catch (error) {
-      console.error("Login error:", error)
-      return false
     }
-  }
+    setIsLoading(false);
+  }, []);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const response = await apiClient.post("/auth/login", { email, password });
+
+      if (response && response.accessToken) {
+        const { accessToken, user: userData } = response;
+        
+        const fullUser: User = {
+          id: userData.id,
+          email: userData.email,
+          role: userData.role,
+          name: `${userData.firstName} ${userData.lastName}`,
+        };
+
+        localStorage.setItem("authToken", accessToken);
+        localStorage.setItem("user", JSON.stringify(fullUser));
+
+        setToken(accessToken);
+        setUser(fullUser);
+        apiClient.setToken(accessToken);
+        
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error("Chyba při přihlašování:", error);
+      return false;
+    }
+  };
 
   const logout = () => {
-    localStorage.removeItem("user")
-    setUser(null)
-    router.push("/login")
-  }
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
 
-  return <AuthContext.Provider value={{ user, login, logout, isLoading }}>{children}</AuthContext.Provider>
+    setToken(null);
+    setUser(null);
+    apiClient.setToken("");
+    router.push("/login");
+  };
+
+  return <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
+  return context;
 }

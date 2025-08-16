@@ -1,3 +1,5 @@
+// src/app/layout.tsx
+
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
@@ -21,14 +23,10 @@ export const metadata: Metadata = {
   description: "Moderní systém pro správu wellness centra Salon Harmonie v Jihlavě",
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="cs" className={`${inter.variable} ${playfair.variable}`}>
-      <body className={`${inter.className} antialiased bg-gradient-to-br from-stone-50 to-sage-50 min-h-screen`}>
+    <html lang="cs">
+      <body>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
