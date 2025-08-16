@@ -1,0 +1,384 @@
+"use client"
+
+import { useState } from "react"
+import { Navigation } from "@/components/layout/navigation"
+import { ProtectedRoute } from "@/components/auth/protected-route"
+import { ClientList } from "@/components/crm/client-list"
+import { ClientModal } from "@/components/crm/client-modal"
+import { ClientProfile } from "@/components/crm/client-profile"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Users, Plus, Search, Filter, UserCheck, Star, Calendar } from "lucide-react"
+
+// Mock client data with comprehensive profiles
+const mockClients = [
+  {
+    id: "client-1",
+    name: "Jana Nováková",
+    email: "jana.novakova@email.cz",
+    phone: "+420 123 456 789",
+    dateOfBirth: "1985-03-15",
+    address: "Masarykova 123, Jihlava",
+    registrationDate: "2024-01-15",
+    lastVisit: "2025-01-10",
+    totalVisits: 12,
+    totalSpent: 9600,
+    loyaltyPoints: 480,
+    status: "vip",
+    preferences: {
+      massagePressure: "silný",
+      favoriteTherapist: "Anna Krásná",
+      allergies: ["mandlový olej"],
+      notes: "Preferuje ranní termíny, má problémy s krční páteří",
+    },
+    visitHistory: [
+      {
+        id: "visit-1",
+        date: "2025-01-10",
+        service: "Relaxační masáž",
+        therapist: "Anna Krásná",
+        duration: 60,
+        price: 800,
+        notes: "Klient spokojen, doporučil silnější tlak",
+      },
+      {
+        id: "visit-2",
+        date: "2024-12-20",
+        service: "Aromaterapie",
+        therapist: "Lucie Harmonie",
+        duration: 45,
+        price: 600,
+        notes: "První aromaterapie, velmi pozitivní reakce",
+      },
+    ],
+    communications: [
+      {
+        id: "comm-1",
+        type: "email",
+        date: "2025-01-11",
+        subject: "Děkujeme za návštěvu",
+        status: "sent",
+      },
+      {
+        id: "comm-2",
+        type: "sms",
+        date: "2025-01-09",
+        subject: "Připomínka termínu zítra v 10:00",
+        status: "delivered",
+      },
+    ],
+  },
+  {
+    id: "client-2",
+    name: "Petr Svoboda",
+    email: "petr.svoboda@email.cz",
+    phone: "+420 987 654 321",
+    dateOfBirth: "1978-07-22",
+    address: "Havlíčkova 45, Jihlava",
+    registrationDate: "2024-03-10",
+    lastVisit: "2025-01-08",
+    totalVisits: 8,
+    totalSpent: 6400,
+    loyaltyPoints: 320,
+    status: "regular",
+    preferences: {
+      massagePressure: "střední",
+      favoriteTherapist: "Pavel Wellness",
+      allergies: [],
+      notes: "Sportovec, zaměřit se na regeneraci svalů",
+    },
+    visitHistory: [
+      {
+        id: "visit-3",
+        date: "2025-01-08",
+        service: "Sportovní masáž",
+        therapist: "Pavel Wellness",
+        duration: 90,
+        price: 1200,
+        notes: "Regenerace po maratonu, dobrá reakce",
+      },
+    ],
+    communications: [],
+  },
+  {
+    id: "client-3",
+    name: "Marie Dvořáková",
+    email: "marie.dvorakova@email.cz",
+    phone: "+420 555 123 456",
+    dateOfBirth: "1992-11-08",
+    address: "Žižkova 78, Jihlava",
+    registrationDate: "2024-11-20",
+    lastVisit: "2024-12-15",
+    totalVisits: 3,
+    totalSpent: 1800,
+    loyaltyPoints: 90,
+    status: "new",
+    preferences: {
+      massagePressure: "jemný",
+      favoriteTherapist: "",
+      allergies: ["citrusy"],
+      notes: "Nový klient, citlivá pokožka",
+    },
+    visitHistory: [
+      {
+        id: "visit-4",
+        date: "2024-12-15",
+        service: "Kosmetické ošetření",
+        therapist: "Pavel Wellness",
+        duration: 90,
+        price: 1200,
+        notes: "První kosmetické ošetření, spokojená",
+      },
+    ],
+    communications: [],
+  },
+]
+
+export default function ClientsPage() {
+  const [clients, setClients] = useState(mockClients)
+  const [selectedClient, setSelectedClient] = useState<string | null>(null)
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false)
+  const [editingClient, setEditingClient] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [viewMode, setViewMode] = useState<"list" | "profile">("list")
+
+  const filteredClients = clients.filter((client) => {
+    const matchesSearch =
+      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.phone.includes(searchTerm)
+
+    const matchesStatus = statusFilter === "all" || client.status === statusFilter
+
+    return matchesSearch && matchesStatus
+  })
+
+  const clientStats = {
+    total: clients.length,
+    new: clients.filter((c) => c.status === "new").length,
+    regular: clients.filter((c) => c.status === "regular").length,
+    vip: clients.filter((c) => c.status === "vip").length,
+    totalRevenue: clients.reduce((sum, c) => sum + c.totalSpent, 0),
+  }
+
+  const handleClientSelect = (clientId: string) => {
+    setSelectedClient(clientId)
+    setViewMode("profile")
+  }
+
+  const handleClientEdit = (clientId: string) => {
+    setEditingClient(clientId)
+    setIsClientModalOpen(true)
+  }
+
+  const handleClientCreate = (clientData: any) => {
+    const newClient = {
+      id: `client-${Date.now()}`,
+      ...clientData,
+      registrationDate: new Date().toISOString().split("T")[0],
+      totalVisits: 0,
+      totalSpent: 0,
+      loyaltyPoints: 0,
+      status: "new" as const,
+      visitHistory: [],
+      communications: [],
+    }
+    setClients([...clients, newClient])
+    setIsClientModalOpen(false)
+    setEditingClient(null)
+  }
+
+  const handleClientUpdate = (clientId: string, clientData: any) => {
+    setClients(clients.map((c) => (c.id === clientId ? { ...c, ...clientData } : c)))
+    setIsClientModalOpen(false)
+    setEditingClient(null)
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "vip":
+        return "bg-amber-100 text-amber-800 border-amber-200"
+      case "regular":
+        return "bg-blue-100 text-blue-800 border-blue-200"
+      case "new":
+        return "bg-emerald-100 text-emerald-800 border-emerald-200"
+      default:
+        return "bg-stone-100 text-stone-800 border-stone-200"
+    }
+  }
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "vip":
+        return "VIP"
+      case "regular":
+        return "Stálý"
+      case "new":
+        return "Nový"
+      default:
+        return status
+    }
+  }
+
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
+        <Navigation />
+
+        <main className="container mx-auto px-4 py-8">
+          {viewMode === "list" ? (
+            <>
+              {/* Header */}
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">
+                <div>
+                  <h1 className="text-3xl font-serif font-bold text-stone-800 mb-2">Správa klientů</h1>
+                  <p className="text-stone-600">CRM systém pro Salon Harmonie</p>
+                </div>
+                <div className="flex items-center space-x-4 mt-4 lg:mt-0">
+                  <Button onClick={() => setIsClientModalOpen(true)} className="bg-amber-700 hover:bg-amber-800">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nový klient
+                  </Button>
+                </div>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+                <Card className="border-stone-200 bg-white/80">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-stone-600">Celkem klientů</CardTitle>
+                    <Users className="h-4 w-4 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-stone-800">{clientStats.total}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-stone-200 bg-white/80">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-stone-600">VIP klienti</CardTitle>
+                    <Star className="h-4 w-4 text-amber-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-stone-800">{clientStats.vip}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-stone-200 bg-white/80">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-stone-600">Stálí klienti</CardTitle>
+                    <UserCheck className="h-4 w-4 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-stone-800">{clientStats.regular}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-stone-200 bg-white/80">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-stone-600">Noví klienti</CardTitle>
+                    <Calendar className="h-4 w-4 text-emerald-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-stone-800">{clientStats.new}</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-stone-200 bg-white/80">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-stone-600">Celkové tržby</CardTitle>
+                    <Users className="h-4 w-4 text-purple-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-stone-800">
+                      {clientStats.totalRevenue.toLocaleString()} Kč
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Search and Filters */}
+              <Card className="border-stone-200 bg-white/80 mb-6">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-stone-400" />
+                        <Input
+                          placeholder="Hledat klienty..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 w-64"
+                        />
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Filter className="w-4 h-4 text-stone-500" />
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-48">
+                            <SelectValue placeholder="Filtrovat podle statusu" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Všichni klienti</SelectItem>
+                            <SelectItem value="vip">VIP klienti</SelectItem>
+                            <SelectItem value="regular">Stálí klienti</SelectItem>
+                            <SelectItem value="new">Noví klienti</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="text-sm text-stone-600">
+                      Zobrazeno {filteredClients.length} z {clients.length} klientů
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Client List */}
+              <Card className="border-stone-200 bg-white/80">
+                <CardContent className="p-6">
+                  <ClientList
+                    clients={filteredClients}
+                    onClientSelect={handleClientSelect}
+                    onClientEdit={handleClientEdit}
+                    getStatusColor={getStatusColor}
+                    getStatusLabel={getStatusLabel}
+                  />
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            selectedClient && (
+              <ClientProfile
+                client={clients.find((c) => c.id === selectedClient)!}
+                onBack={() => {
+                  setViewMode("list")
+                  setSelectedClient(null)
+                }}
+                onEdit={() => handleClientEdit(selectedClient)}
+                getStatusColor={getStatusColor}
+                getStatusLabel={getStatusLabel}
+              />
+            )
+          )}
+        </main>
+
+        {/* Client Modal */}
+        <ClientModal
+          isOpen={isClientModalOpen}
+          onClose={() => {
+            setIsClientModalOpen(false)
+            setEditingClient(null)
+          }}
+          client={editingClient ? clients.find((c) => c.id === editingClient) : null}
+          onClientCreate={handleClientCreate}
+          onClientUpdate={handleClientUpdate}
+        />
+      </div>
+    </ProtectedRoute>
+  )
+}

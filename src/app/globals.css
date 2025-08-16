@@ -1,3 +1,66 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@theme inline {
+  --font-inter: var(--font-inter);
+  --font-playfair: var(--font-playfair);
+
+  /* Sage color palette for Salon Harmonie */
+  --color-sage-50: #f6f7f6;
+  --color-sage-100: #e8eae8;
+  --color-sage-200: #d1d5d1;
+  --color-sage-300: #adb5ad;
+  --color-sage-400: #8a958a;
+  --color-sage-500: #6b7a6b;
+  --color-sage-600: #556355;
+  --color-sage-700: #475047;
+  --color-sage-800: #3a423a;
+  --color-sage-900: #2f362f;
+  --color-sage-950: #1a1e1a;
+
+  /* Stone color palette */
+  --color-stone-50: #fafaf9;
+  --color-stone-100: #f5f5f4;
+  --color-stone-200: #e7e5e4;
+  --color-stone-300: #d6d3d1;
+  --color-stone-400: #a8a29e;
+  --color-stone-500: #78716c;
+  --color-stone-600: #57534e;
+  --color-stone-700: #44403c;
+  --color-stone-800: #292524;
+  --color-stone-900: #1c1917;
+  --color-stone-950: #0c0a09;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-stone-100);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-sage-300);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-sage-400);
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--color-sage-500);
+  outline-offset: 2px;
+}
+
+/* Smooth transitions */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow,
+    transform, filter, backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}

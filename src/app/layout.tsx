@@ -1,40 +1,36 @@
-import type { Metadata } from 'next';
-import { Lora, Inter } from 'next/font/google';
-import './globals.css';
-import { AuthProvider } from '@/contexts/AuthContext'; // Import AuthProvider
-
-// Načtení fontů podle strategického dokumentu
-const lora = Lora({
-  subsets: ['latin'],
-  variable: '--font-lora',
-  weight: ['400', '700'],
-});
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter, Playfair_Display } from "next/font/google"
+import "./globals.css"
+import { AuthProvider } from "@/components/auth/auth-provider"
 
 const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-});
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+})
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
-  title: 'Salon Harmonie - Rezervační Systém',
-  description: 'Vítejte v digitálním prostředí Salonu Harmonie.',
-};
+  title: "Salon Harmonie - Systém řízení",
+  description: "Moderní systém pro správu wellness centra Salon Harmonie v Jihlavě",
+}
 
-// Hlavní layout komponenta
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  // Tento layout je nyní jednodušší. Obaluje celou aplikaci
-  // AuthProviderem, aby byl přihlašovací stav dostupný všude.
-  // Specifické layouty (jako admin panel nebo přihlašovací stránka)
-  // si řeší své vlastní zobrazení samy.
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="cs">
-      <body className={`${inter.variable} font-sans bg-brand-accent`}>
+    <html lang="cs" className={`${inter.variable} ${playfair.variable}`}>
+      <body className={`${inter.className} antialiased bg-gradient-to-br from-stone-50 to-sage-50 min-h-screen`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
-  );
+  )
 }
