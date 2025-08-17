@@ -1,79 +1,71 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+// src/lib/api/client.ts
+
+import axios, {
+  AxiosInstance,
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+} from "axios"
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
 
 class ApiClient {
-  private baseURL: string
-  private token: string | null = null
+  private client: AxiosInstance
 
   constructor(baseURL: string = API_BASE_URL) {
-    this.baseURL = baseURL
-    this.token = localStorage.getItem("auth_token")
-  }
-
-  setToken(token: string | null) {
-    this.token = token
-    if (token) {
-      localStorage.setItem("auth_token", token)
-    } else {
-      localStorage.removeItem("auth_token")
-    }
-  }
-
-  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`
-
-    const config: RequestInit = {
+    this.client = axios.create({
+      baseURL,
       headers: {
         "Content-Type": "application/json",
-        ...options.headers,
       },
-      ...options,
-    }
-
-    if (this.token) {
-      config.headers = {
-        ...config.headers,
-        Authorization: `Bearer ${this.token}`,
-      }
-    }
-
-    try {
-      const response = await fetch(url, config)
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      return await response.json()
-    } catch (error) {
-      console.error(`API request failed: ${endpoint}`, error)
-      throw error
-    }
-  }
-
-  // GET request
-  async get<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "GET" })
-  }
-
-  // POST request
-  async post<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: "POST",
-      body: data ? JSON.stringify(data) : undefined,
     })
+
+    // TENTO INTERCEPTOR JE KLÍČOVÝ
+    // Spustí se před každým požadavkem a přidá token z localStorage.
+    this.client.interceptors.request.use(
+      (config: InternalAxiosRequestConfig) => {
+        // Kontrolujeme pouze v prostředí prohlížeče
+        if (typeof window !== "undefined") {
+          const token = localStorage.getItem("auth_token")
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`
+          }
+        }
+        return config
+      },
+      (error) => {
+        return Promise.reject(error)
+      },
+    )
   }
 
-  // PATCH request
-  async patch<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: "PATCH",
-      body: data ? JSON.stringify(data) : undefined,
-    })
+  // Metody pro API volání zůstávají stejné
+  async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.client.get<T>(url, config)
+    return response.data
   }
 
-  // DELETE request
-  async delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>(endpoint, { method: "DELETE" })
+  async post<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
+    const response = await this.client.post<T>(url, data, config)
+    return response.data
+  }
+
+  async patch<T>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig,
+  ): Promise<T> {
+    const response = await this.client.patch<T>(url, data, config)
+    return response.data
+  }
+
+  async delete<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.client.delete<T>(url, config)
+    return response.data
   }
 }
 

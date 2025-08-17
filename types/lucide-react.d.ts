@@ -1,3 +1,5 @@
+// types/lucide-react.d.ts
+
 declare module "lucide-react" {
   import type { ComponentType, SVGProps } from "react"
 
@@ -17,6 +19,7 @@ declare module "lucide-react" {
   export const User: LucideIcon
   export const LogOut: LucideIcon
   export const Plus: LucideIcon
+  export const PlusCircle: LucideIcon
   export const Search: LucideIcon
   export const Filter: LucideIcon
   export const Edit: LucideIcon
@@ -100,6 +103,9 @@ declare module "lucide-react" {
   export const ArrowLeft: LucideIcon
   export const Zap: LucideIcon
   export const Scissors: LucideIcon
+  export const Sparkles: LucideIcon
+  // OPRAVA ZDE: Přidána chybějící ikona
+  export const Activity: LucideIcon
 
   // Export all icons as default
   const lucideReact: {

@@ -1,10 +1,10 @@
 // src/app/layout.tsx
 
-import type React from "react"
 import type { Metadata } from "next"
 import { Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/components/auth/auth-provider"
+import { cn } from "@/lib/utils"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,13 +20,24 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: "Salon Harmonie - Systém řízení",
-  description: "Moderní systém pro správu wellness centra Salon Harmonie v Jihlavě",
+  description:
+    "Moderní systém pro správu wellness centra Salon Harmonie v Jihlavě",
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode
+}>) {
   return (
-    <html lang="cs">
-      <body>
+    <html lang="cs" suppressHydrationWarning>
+      <body
+        className={cn(
+          "min-h-screen bg-background font-sans antialiased",
+          inter.variable,
+          playfair.variable,
+        )}
+      >
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
