@@ -1,5 +1,3 @@
-// src/app/clients/page.tsx
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -14,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Users, Plus, Search, Filter, UserCheck, Star, Calendar } from "lucide-react"
 import { clientsApi } from "@/lib/api/clients"
+import { apiClient } from "@/lib/api/client"
 
 export default function ClientsPage() {
   const [clients, setClients] = useState<any[]>([])
@@ -35,6 +34,11 @@ export default function ClientsPage() {
       setLoading(true)
       setError(null)
       console.log("[v0] Loading clients data from API...")
+
+      const token = localStorage.getItem("token")
+      if (token) {
+        apiClient.setToken(token)
+      }
 
       const clientsData = await clientsApi.getAll()
       console.log("[v0] Loaded clients:", clientsData)
@@ -104,6 +108,11 @@ export default function ClientsPage() {
     try {
       console.log("[v0] Creating new client:", clientData)
 
+      const token = localStorage.getItem("token")
+      if (token) {
+        apiClient.setToken(token)
+      }
+
       const newClient = await clientsApi.create({
         firstName: clientData.name.split(" ")[0] || clientData.firstName,
         lastName: clientData.name.split(" ").slice(1).join(" ") || clientData.lastName,
@@ -129,6 +138,11 @@ export default function ClientsPage() {
   const handleClientUpdate = async (clientId: string, clientData: any) => {
     try {
       console.log("[v0] Updating client:", clientId, clientData)
+
+      const token = localStorage.getItem("token")
+      if (token) {
+        apiClient.setToken(token)
+      }
 
       await clientsApi.update(clientId, {
         firstName: clientData.name.split(" ")[0] || clientData.firstName,

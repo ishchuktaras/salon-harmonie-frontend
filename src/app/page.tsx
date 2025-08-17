@@ -57,21 +57,25 @@ export default function HomePage() {
             klienty s důrazem na přírodní harmonii a klid.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-sage-600 hover:bg-sage-700 text-white shadow-lg hover:shadow-xl transition-all"
-            >
-              Rezervovat termín
-              <Calendar className="w-4 h-4 ml-2" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-stone-300 text-stone-700 hover:bg-sage-50 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-all"
-            >
-              Prohlédnout služby
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <Link href="/booking">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-sage-600 to-sage-700 hover:from-sage-700 hover:to-sage-800 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 font-medium border-0"
+              >
+                Rezervovat termín
+                <Calendar className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+            <Link href="/services">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-2 border-sage-600 text-sage-700 hover:bg-sage-600 hover:text-white bg-white shadow-sm hover:shadow-md transition-all duration-300 font-medium"
+              >
+                Prohlédnout služby
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

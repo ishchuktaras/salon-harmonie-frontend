@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/components/auth/auth-provider"
 import { Navigation } from "@/components/layout/navigation"
 import { StatsCard } from "@/components/ui/stats-card"
 import { PageHeader } from "@/components/ui/page-header"
@@ -11,14 +12,9 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Calendar, Users, CreditCard, Clock, TrendingUp, UserCheck, Euro, Plus } from "lucide-react"
 import { reservationsApi } from "@/lib/api/reservations"
 import { clientsApi } from "@/lib/api/clients"
+import { apiClient } from "@/lib/api/client"
 import type { Reservation } from "@/lib/api/types"
 import type { Client } from "@/lib/api/types"
-
-interface User {
-  email: string
-  role: string
-  name: string
-}
 
 interface DashboardStats {
   todayReservations: number
@@ -31,8 +27,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { user, isLoading: authLoading } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [upcomingReservations, setUpcomingReservations] = useState<Reservation[]>([])
   const [isLoadingData, setIsLoadingData] = useState(true)
@@ -41,29 +36,23 @@ export default function DashboardPage() {
   const [clients, setClients] = useState<Client[]>([])
 
   useEffect(() => {
-    // Check authentication
-    const userData = localStorage.getItem("user")
-    if (!userData) {
-      router.push("/login")
-      return
-    }
-    setUser(JSON.parse(userData))
-    setIsLoading(false)
-  }, [router])
-
-  useEffect(() => {
     const loadDashboardData = async () => {
-      if (!user) return
+      if (!user || authLoading) return
 
       try {
         setIsLoadingData(true)
         setError(null)
 
-        // Load today's reservations
+        const token = localStorage.getItem("token")
+        if (token) {
+          apiClient.setToken(token)
+        } else {
+          throw new Error("No authentication token found")
+        }
+
         const today = new Date().toISOString().split("T")[0]
         const todayReservations = await reservationsApi.getByDateRange(today, today)
 
-        // Load upcoming reservations (next 3)
         const tomorrow = new Date()
         tomorrow.setDate(tomorrow.getDate() + 1)
         const nextWeek = new Date()
@@ -74,18 +63,15 @@ export default function DashboardPage() {
           nextWeek.toISOString().split("T")[0],
         )
 
-        // Load active clients
         const clientsData = await clientsApi.getAll()
         setClients(clientsData)
 
-        // Calculate statistics
         const todayRevenue = todayReservations.reduce((sum: number, res: Reservation) => {
           return sum + (res.totalPrice || 0)
         }, 0)
 
-        // Calculate occupancy rate (simplified - based on confirmed vs total slots)
         const confirmedToday = todayReservations.filter((r: Reservation) => r.status === "confirmed").length
-        const totalSlots = 20 // Assuming 20 slots per day
+        const totalSlots = 20
         const occupancyRate = Math.round((confirmedToday / totalSlots) * 100)
 
         setStats({
@@ -114,9 +100,15 @@ export default function DashboardPage() {
     }
 
     loadDashboardData()
-  }, [user])
+  }, [user, authLoading])
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, authLoading, router])
+
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-stone-50 via-sage-50 to-stone-100 flex items-center justify-center">
         <LoadingSpinner size="lg" />
@@ -214,7 +206,6 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Quick Actions & Upcoming Appointments */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="border-stone-200 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
             <CardHeader>

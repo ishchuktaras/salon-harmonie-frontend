@@ -1,64 +1,79 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"
+
 class ApiClient {
   private baseURL: string
   private token: string | null = null
 
-  constructor(baseURL: string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000") {
+  constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL
+    this.token = localStorage.getItem("auth_token")
   }
 
-  setToken(token: string) {
+  setToken(token: string | null) {
     this.token = token
+    if (token) {
+      localStorage.setItem("auth_token", token)
+    } else {
+      localStorage.removeItem("auth_token")
+    }
   }
 
-  private async request(endpoint: string, options: RequestInit = {}): Promise<any> {
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(options.headers as Record<string, string>),
+
+    const config: RequestInit = {
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      ...options,
     }
 
     if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`
+      config.headers = {
+        ...config.headers,
+        Authorization: `Bearer ${this.token}`,
+      }
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    })
+    try {
+      const response = await fetch(url, config)
 
-    if (!response.ok) {
-      console.error(`API request failed: ${endpoint}`, `Error: HTTP error! status: ${response.status}`)
-      throw new Error(`HTTP error! status: ${response.status}`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error(`API request failed: ${endpoint}`, error)
+      throw error
     }
-
-    const contentType = response.headers.get("content-type")
-    if (contentType && contentType.includes("application/json")) {
-      return response.json()
-    }
-
-    return response.text()
   }
 
-  async get(endpoint: string): Promise<any> {
-    return this.request(endpoint, { method: "GET" })
+  // GET request
+  async get<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: "GET" })
   }
 
-  async post(endpoint: string, data: any): Promise<any> {
-    return this.request(endpoint, {
+  // POST request
+  async post<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
       method: "POST",
-      body: JSON.stringify(data),
+      body: data ? JSON.stringify(data) : undefined,
     })
   }
 
-  async patch(endpoint: string, data: any): Promise<any> {
-    return this.request(endpoint, {
+  // PATCH request
+  async patch<T>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
       method: "PATCH",
-      body: JSON.stringify(data),
+      body: data ? JSON.stringify(data) : undefined,
     })
   }
 
-  async delete(endpoint: string): Promise<any> {
-    return this.request(endpoint, { method: "DELETE" })
+  // DELETE request
+  async delete<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: "DELETE" })
   }
 }
 

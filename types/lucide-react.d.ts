@@ -97,7 +97,9 @@ declare module "lucide-react" {
   export const Receipt: LucideIcon
   export const ShoppingCart: LucideIcon
   export const Check: LucideIcon
-  export const Sparkles: LucideIcon
+  export const ArrowLeft: LucideIcon
+  export const Zap: LucideIcon
+  export const Scissors: LucideIcon
 
   // Export all icons as default
   const lucideReact: {

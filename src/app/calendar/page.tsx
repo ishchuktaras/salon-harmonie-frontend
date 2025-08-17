@@ -400,8 +400,7 @@ export default function CalendarPage() {
               // Save to database
               const savedReservation = await saveAppointmentToDatabase(newReservationData)
 
-              // Reload appointments from database to get fresh data
-              await loadAppointmentsFromDatabase()
+              await loadInitialData()
 
               setIsBookingModalOpen(false)
               setSelectedDate(null)
