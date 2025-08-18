@@ -20,11 +20,8 @@ class ApiClient {
       },
     })
 
-    // TENTO INTERCEPTOR JE KLÍČOVÝ
-    // Spustí se před každým požadavkem a přidá token z localStorage.
     this.client.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
-        // Kontrolujeme pouze v prostředí prohlížeče
         if (typeof window !== "undefined") {
           const token = localStorage.getItem("auth_token")
           if (token) {
@@ -39,7 +36,6 @@ class ApiClient {
     )
   }
 
-  // Metody pro API volání zůstávají stejné
   async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
     const response = await this.client.get<T>(url, config)
     return response.data

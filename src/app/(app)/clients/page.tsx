@@ -8,9 +8,6 @@ import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import {
   Table,
@@ -22,6 +19,7 @@ import {
 } from "@/components/ui/table"
 import { PlusCircle, Users } from "lucide-react"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { ClientModal } from "@/components/crm/client-modal"
 
 // Definujeme typ pro klienta podle vašeho Prisma schématu
 interface Client {
@@ -37,6 +35,7 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false) // Stav pro otevírání/zavírání modalu
 
   const fetchClients = async () => {
     try {
@@ -91,7 +90,7 @@ export default function ClientsPage() {
             Začněte tím, že přidáte svého prvního klienta.
           </p>
           <div className="mt-6">
-            <Button>
+            <Button onClick={() => setIsModalOpen(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Přidat klienta
             </Button>
@@ -140,7 +139,7 @@ export default function ClientsPage() {
           </p>
         </div>
         <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-          <Button>
+          <Button onClick={() => setIsModalOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Přidat klienta
           </Button>
@@ -149,6 +148,13 @@ export default function ClientsPage() {
       <Card>
         <CardContent className="pt-6">{renderContent()}</CardContent>
       </Card>
+      
+      {/* Přidání modálního okna na stránku */}
+      <ClientModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onClientCreated={fetchClients} // Po vytvoření klienta obnovíme seznam
+      />
     </div>
   )
 }

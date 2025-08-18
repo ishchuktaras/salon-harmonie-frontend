@@ -33,7 +33,6 @@ export default function LoginPage() {
         user: any
       }>("/auth/login", { email, password })
       
-      // Voláme login z AuthContextu s celým objektem
       login(response)
 
     } catch (err) {

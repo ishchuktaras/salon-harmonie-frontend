@@ -6,8 +6,16 @@ import { useEffect, useState } from "react"
 import { apiClient } from "@/lib/api/client"
 import { Button } from "@/components/ui/button"
 import { PlusCircle } from "lucide-react"
-import { startOfWeek, endOfWeek, format, eachDayOfInterval } from "date-fns"
+import {
+  startOfWeek,
+  endOfWeek,
+  format,
+  eachDayOfInterval,
+  isSameDay,
+} from "date-fns"
 import { cs } from "date-fns/locale"
+import { BookingModal } from "@/components/calendar/booking-modal"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 // Definujeme typy pro data, která dostaneme z API
 interface Therapist {
@@ -46,33 +54,39 @@ export default function CalendarPage() {
   const [data, setData] = useState<CalendarData | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
   const weekEnd = endOfWeek(currentDate, { weekStartsOn: 1 })
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        const startDate = format(weekStart, "yyyy-MM-dd")
-        const endDate = format(weekEnd, "yyyy-MM-dd'T'23:59:59.999'Z'")
-        const response = await apiClient.get<CalendarData>(
-          `/calendar/manager-view?startDate=${startDate}&endDate=${endDate}`,
-        )
-        setData(response)
-      } catch (error) {
-        console.error("Failed to fetch calendar data:", error)
-      } finally {
-        setLoading(false)
-      }
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const startDate = format(weekStart, "yyyy-MM-dd")
+      const endDate = format(weekEnd, "yyyy-MM-dd'T'23:59:59.999'Z'")
+      const response = await apiClient.get<CalendarData>(
+        `/calendar/manager-view?startDate=${startDate}&endDate=${endDate}`,
+      )
+      setData(response)
+    } catch (error) {
+      console.error("Failed to fetch calendar data:", error)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  useEffect(() => {
     fetchData()
-  }, [currentDate]) // Znovu načteme data, když se změní týden
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDate])
 
   if (loading) {
-    return <div>Načítám kalendář...</div>
+    return (
+        <div className="flex h-[calc(100vh-150px)] w-full items-center justify-center">
+            <LoadingSpinner size="lg" />
+        </div>
+    )
   }
 
   if (!data) {
@@ -83,12 +97,11 @@ export default function CalendarPage() {
     <div className="w-full">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Kalendář</h1>
-        <Button>
+        <Button onClick={() => setIsModalOpen(true)}>
           <PlusCircle className="mr-2 h-4 w-4" /> Nová rezervace
         </Button>
       </div>
 
-      {/* Ovládání kalendáře */}
       <div className="flex items-center justify-between mb-4">
         <Button
           variant="outline"
@@ -98,7 +111,7 @@ export default function CalendarPage() {
         >
           Předchozí týden
         </Button>
-        <div className="text-xl font-semibold">
+        <div className="text-xl font-semibold text-center">
           {format(weekStart, "d. MMMM", { locale: cs })} -{" "}
           {format(weekEnd, "d. MMMM yyyy", { locale: cs })}
         </div>
@@ -112,12 +125,8 @@ export default function CalendarPage() {
         </Button>
       </div>
 
-      {/* Mřížka kalendáře */}
-      <div className="grid grid-cols-8 border-t border-l border-gray-200">
-        {/* Prázdný roh */}
+      <div className="grid grid-cols-[150px_repeat(7,1fr)] border-t border-l border-gray-200 bg-white">
         <div className="p-2 border-r border-b border-gray-200 bg-gray-50"></div>
-
-        {/* Hlavička dnů */}
         {days.map((day) => (
           <div
             key={day.toString()}
@@ -130,26 +139,73 @@ export default function CalendarPage() {
           </div>
         ))}
 
-        {/* Řádky terapeutů */}
         {data.therapists.map((therapist) => (
           <>
             <div
               key={therapist.id}
-              className="p-2 border-r border-b border-gray-200 bg-gray-50 flex items-center justify-center"
+              className="p-2 border-r border-b border-gray-200 bg-gray-50 flex items-center justify-center text-center font-semibold"
             >
               {therapist.firstName} {therapist.lastName}
             </div>
             {days.map((day) => (
               <div
                 key={`${therapist.id}-${day.toString()}`}
-                className="p-1 border-r border-b border-gray-200 h-48 relative"
+                className="p-1 border-r border-b border-gray-200 h-48 relative space-y-1 overflow-y-auto"
               >
-                {/* Zde vykreslíme rezervace a blokace pro daný den a terapeuta */}
+                {/* Vykreslení rezervací */}
+                {data.reservations
+                  .filter(
+                    (res) =>
+                      res.therapistId === therapist.id &&
+                      isSameDay(new Date(res.startTime), day),
+                  )
+                  .map((res) => (
+                    <div
+                      key={res.id}
+                      className="bg-blue-100 border border-blue-200 p-2 rounded-lg text-xs cursor-pointer hover:bg-blue-200"
+                    >
+                      <p className="font-bold text-blue-800">
+                        {res.client.firstName} {res.client.lastName}
+                      </p>
+                      <p className="text-blue-700">{res.service.name}</p>
+                      <p className="text-gray-600 mt-1">
+                        {format(new Date(res.startTime), "HH:mm")} -{" "}
+                        {format(new Date(res.endTime), "HH:mm")}
+                      </p>
+                    </div>
+                  ))}
+                {/* Vykreslení blokací */}
+                {data.timeBlocks
+                  .filter(
+                    (block) =>
+                      block.therapistId === therapist.id &&
+                      isSameDay(new Date(block.startTime), day),
+                  )
+                  .map((block) => (
+                    <div
+                      key={block.id}
+                      className="bg-gray-200 border border-gray-300 p-2 rounded-lg text-xs"
+                    >
+                      <p className="font-bold text-gray-700">
+                        {block.reason || "Blokace"}
+                      </p>
+                      <p className="text-gray-600 mt-1">
+                        {format(new Date(block.startTime), "HH:mm")} -{" "}
+                        {format(new Date(block.endTime), "HH:mm")}
+                      </p>
+                    </div>
+                  ))}
               </div>
             ))}
           </>
         ))}
       </div>
+
+      <BookingModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onBookingCreated={fetchData}
+      />
     </div>
   )
 }
