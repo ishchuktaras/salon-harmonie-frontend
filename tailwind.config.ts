@@ -1,8 +1,7 @@
-// tailwind.config.ts
 import type { Config } from "tailwindcss"
 
 const config = {
-  darkMode: "class",
+  darkMode: ["class"],
   content: [
     './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
@@ -59,10 +58,6 @@ const config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-      fontFamily: {
-        sans: ["var(--font-inter)"],
-        serif: ["var(--font-lora)"],
-      },
       keyframes: {
         "accordion-down": {
           from: { height: "0" },
@@ -76,6 +71,10 @@ const config = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      fontFamily: {
+        sans: ["var(--font-inter)"],
+        serif: ["var(--font-playfair-display)"],
       },
     },
   },

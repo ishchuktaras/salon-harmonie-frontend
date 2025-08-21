@@ -1,9 +1,5 @@
-// src/app/login/page.tsx
-
 "use client"
 
-import { useState } from "react"
-import { useAuth } from "@/components/auth/auth-provider"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,42 +10,49 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { apiClient } from "@/lib/api/client"
+import { useAuth } from "@/components/auth/auth-provider"
+import { useState, FormEvent } from "react"
+import { useRouter } from "next/navigation"
+import { apiClient } from "@/lib/api/client" // Import našeho API klienta
 
 export default function LoginPage() {
-  const { login } = useAuth()
-  const [email, setEmail] = useState("admin@salon.cz")
-  const [password, setPassword] = useState("admin123")
+  const [email, setEmail] = useState("admin@harmonie.cz") // Předvyplněno pro pohodlí
+  const [password, setPassword] = useState("password") // Předvyplněno pro pohodlí
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const { login } = useAuth()
+  const router = useRouter()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault()
     setError(null)
     try {
-      const response = await apiClient.post<{
-        accessToken: string
-        user: any
-      }>("/auth/login", { email, password })
-      
-      login(response)
+      // Volání skutečného backend endpointu pro přihlášení
+      const response = await apiClient.post<{ access_token: string; user: any }>('/auth/login', {
+        email,
+        password,
+      });
 
-    } catch (err) {
-      setError("Neplatné přihlašovací údaje")
-      console.error("Login failed:", err)
-    } finally {
-      setIsLoading(false)
+      if (response.access_token && response.user) {
+        // Uložení skutečného tokenu a dat o uživateli
+        login(response.access_token, response.user);
+        router.push('/dashboard'); // Přesměrování na dashboard
+      } else {
+        throw new Error("Odpověď z API neobsahuje token nebo uživatelská data.");
+      }
+
+    } catch (err: any) {
+      console.error("Login failed:", err);
+      setError(err.response?.data?.message || "Přihlášení se nezdařilo. Zkontrolujte údaje.");
     }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center min-h-screen bg-muted/40">
       <Card className="mx-auto max-w-sm">
         <CardHeader>
-          <CardTitle className="text-2xl">Přihlášení do Salon Harmonie</CardTitle>
+          <CardTitle className="text-2xl font-serif">Přihlášení</CardTitle>
           <CardDescription>
-            Zadejte své přihlašovací údaje
+            Zadejte své přihlašovací údaje pro vstup do systému
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -59,25 +62,27 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="m@example.com"
+                placeholder="jmeno@priklad.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">Heslo</Label>
-              <Input
-                id="password"
-                type="password"
-                required
+              <div className="flex items-center">
+                <Label htmlFor="password">Heslo</Label>
+              </div>
+              <Input 
+                id="password" 
+                type="password" 
+                required 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Přihlašuji..." : "Přihlásit se"}
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button type="submit" className="w-full">
+              Přihlásit se
             </Button>
           </form>
         </CardContent>

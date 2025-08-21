@@ -1,102 +1,74 @@
-// src/components/auth/auth-provider.tsx
+"use client";
 
-"use client"
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import Cookies from 'js-cookie';
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-  useCallback,
-} from "react"
-import { useRouter, usePathname } from "next/navigation"
-import { apiClient } from "@/lib/api/client"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-
-interface ProfileApiResponse {
-  id: number
-  email: string
-  firstName: string
-  lastName: string
-  role: string
-}
-
-interface User extends ProfileApiResponse {
-  name: string
+interface User {
+  id: string;
+  email: string;
+  role: string;
 }
 
 interface AuthContextType {
-  user: User | null
-  login: (userData: { user: ProfileApiResponse; accessToken: string }) => void
-  logout: () => void
-  isLoading: boolean
+  user: User | null;
+  token: string | null;
+  login: (token: string, user: User) => void;
+  logout: () => void;
+  isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
-  const pathname = usePathname()
-
-  const logout = useCallback(() => {
-    localStorage.removeItem("auth_token")
-    setUser(null)
-    if (pathname !== "/login") {
-      router.push("/login")
-    }
-  }, [router, pathname])
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const verifyUserOnLoad = async () => {
-      const token = localStorage.getItem("auth_token")
-      if (token) {
-        try {
-          const profile = await apiClient.get<ProfileApiResponse>("/auth/profile")
-          setUser({
-            ...profile,
-            name: `${profile.firstName} ${profile.lastName}`,
-          })
-        } catch (error) {
-          console.error("Token verification failed, logging out:", error)
-          logout()
-        }
+    const storedToken = Cookies.get('token');
+    const storedUser = Cookies.get('user');
+
+    if (storedToken && storedUser) {
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error("Failed to parse user data from cookies", error);
+        // Clear corrupted cookies
+        Cookies.remove('token');
+        Cookies.remove('user');
       }
-      setIsLoading(false)
     }
-    verifyUserOnLoad()
-  }, [logout])
+    setIsLoading(false);
+  }, []);
 
-  const login = (userData: { user: ProfileApiResponse; accessToken: string }) => {
-    localStorage.setItem("auth_token", userData.accessToken)
-    setUser({
-      ...userData.user,
-      name: `${userData.user.firstName} ${userData.user.lastName}`,
-    })
-    router.push("/dashboard")
-  }
+  const login = (newToken: string, userData: User) => {
+    setToken(newToken);
+    setUser(userData);
+    Cookies.set('token', newToken, { expires: 7, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
+    Cookies.set('user', JSON.stringify(userData), { expires: 7, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
+  };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    Cookies.remove('token');
+    Cookies.remove('user');
+    // Redirect to login page to ensure clean state
+    window.location.href = '/login';
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
-  )
-}
+  );
+};
 
 export const useAuth = () => {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return context
-}
+  return context;
+};

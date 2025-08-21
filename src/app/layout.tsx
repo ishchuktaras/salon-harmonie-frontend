@@ -1,45 +1,29 @@
-// src/app/layout.tsx
+import type { Metadata } from "next";
+import { Inter, Playfair_Display } from "next/font/google";
+import "./globals.css";
+import { cn } from "@/lib/utils";
+import { AuthProvider } from "@/components/auth/auth-provider";
 
-import type { Metadata } from "next"
-import { Inter, Playfair_Display } from "next/font/google"
-import "./globals.css"
-import { AuthProvider } from "@/components/auth/auth-provider"
-import { cn } from "@/lib/utils"
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-})
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-playfair",
-  display: "swap",
-})
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const playfairDisplay = Playfair_Display({ subsets: ["latin"], weight: "700", variable: "--font-playfair-display" });
 
 export const metadata: Metadata = {
-  title: "Salon Harmonie - Systém řízení",
-  description:
-    "Moderní systém pro správu wellness centra Salon Harmonie v Jihlavě",
-}
+  title: "Salon Harmonie - Systém Řízení",
+  description: "Interní systém pro správu Salonu Harmonie",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="cs" suppressHydrationWarning>
-      <body
-        className={cn(
-          "min-h-screen bg-background font-sans antialiased",
-          inter.variable,
-          playfair.variable,
-        )}
-      >
-        <AuthProvider>{children}</AuthProvider>
+      <body className={cn("min-h-screen bg-background font-sans antialiased", inter.variable, playfairDisplay.variable)}>
+        <AuthProvider>
+            {children}
+        </AuthProvider>
       </body>
     </html>
-  )
+  );
 }
