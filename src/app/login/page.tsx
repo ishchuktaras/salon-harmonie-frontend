@@ -13,11 +13,11 @@ import { Label } from "@/components/ui/label"
 import { useAuth } from "@/components/auth/auth-provider"
 import { useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import { apiClient } from "@/lib/api/client" // Import našeho API klienta
+import { apiClient } from "@/lib/api/client" 
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@harmonie.cz") // Předvyplněno pro pohodlí
-  const [password, setPassword] = useState("password") // Předvyplněno pro pohodlí
+  const [email, setEmail] = useState("admin@salon.cz") // Předvyplněno pro pohodlí
+  const [password, setPassword] = useState("admin123") // Předvyplněno pro pohodlí
   const [error, setError] = useState<string | null>(null)
   const { login } = useAuth()
   const router = useRouter()

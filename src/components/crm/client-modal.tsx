@@ -1,20 +1,19 @@
-// src/components/crm/client-modal.tsx
-
 "use client"
 
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { apiClient } from "@/lib/api/client"
+
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import {
   Form,
   FormControl,
@@ -23,29 +22,26 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+import { apiClient } from "@/lib/api/client"
 
-// Schéma pro validaci formuláře
-const formSchema = z.object({
-  firstName: z.string().min(1, "Jméno je povinné."),
-  lastName: z.string().min(1, "Příjmení je povinné."),
-  email: z.string().email("Neplatný formát e-mailu."),
+const clientFormSchema = z.object({
+  firstName: z.string().min(1, { message: "Jméno je povinné." }),
+  lastName: z.string().min(1, { message: "Příjmení je povinné." }),
+  email: z.string().email({ message: "Neplatný formát emailu." }),
   phone: z.string().optional(),
 })
 
-interface ClientModalProps {
+type ClientFormValues = z.infer<typeof clientFormSchema>
+
+interface CreateClientModalProps {
   isOpen: boolean
   onClose: () => void
-  onClientCreated: () => void // Funkce pro obnovení seznamu klientů
+  onSuccess: () => void
 }
 
-export function ClientModal({
-  isOpen,
-  onClose,
-  onClientCreated,
-}: ClientModalProps) {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientModalProps) {
+  const form = useForm<ClientFormValues>({
+    resolver: zodResolver(clientFormSchema),
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -54,55 +50,57 @@ export function ClientModal({
     },
   })
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: ClientFormValues) => {
     try {
       await apiClient.post("/clients", values)
-      onClientCreated() // Zavoláme funkci pro obnovení seznamu
-      onClose() // Zavřeme modal
-      form.reset() // Resetujeme formulář
+      onSuccess() // Zavolá funkci pro obnovení seznamu
+      onClose()   // Zavře modální okno
+      form.reset()
     } catch (error) {
       console.error("Failed to create client:", error)
-      // Zde by se mohla zobrazit chybová hláška pro uživatele
+      // Zde by se mohla zobrazit chybová notifikace
     }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Přidat nového klienta</DialogTitle>
+          <DialogTitle className="font-serif">Přidat nového klienta</DialogTitle>
           <DialogDescription>
             Vyplňte údaje pro vytvoření nového klienta.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="firstName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Jméno</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Jan" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Příjmení</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Novák" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+                <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Jméno</FormLabel>
+                    <FormControl>
+                        <Input placeholder="Jan" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Příjmení</FormLabel>
+                    <FormControl>
+                        <Input placeholder="Novák" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
             <FormField
               control={form.control}
               name="email"
@@ -129,11 +127,9 @@ export function ClientModal({
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={onClose}>
-                Zrušit
-              </Button>
-              <Button type="submit">Vytvořit klienta</Button>
+            <DialogFooter className="pt-4">
+                <Button type="button" variant="ghost" onClick={onClose}>Zrušit</Button>
+                <Button type="submit">Vytvořit klienta</Button>
             </DialogFooter>
           </form>
         </Form>

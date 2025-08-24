@@ -16,7 +16,7 @@ import {
   Star,
   Clock,
   User,
-  AlertTriangle,
+  AlertCircle, // OPRAVA: Použita správná ikona
   MessageSquare,
   TrendingUp,
 } from "lucide-react"
@@ -41,6 +41,7 @@ export function ClientProfile({ client, onBack, onEdit, getStatusColor, getStatu
   }
 
   const calculateAge = (dateOfBirth: string) => {
+    if (!dateOfBirth) return '';
     const today = new Date()
     const birthDate = new Date(dateOfBirth)
     let age = today.getFullYear() - birthDate.getFullYear()
@@ -139,15 +140,17 @@ export function ClientProfile({ client, onBack, onEdit, getStatusColor, getStatu
                 </div>
                 <div className="flex items-center space-x-3">
                   <MapPin className="w-4 h-4 text-stone-500" />
-                  <span className="text-stone-800">{client.address}</span>
+                  <span className="text-stone-800">{client.address || "Neuvedena"}</span>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <Calendar className="w-4 h-4 text-stone-500" />
-                  <span className="text-stone-800">
-                    {calculateAge(client.dateOfBirth)} let (
-                    {format(new Date(client.dateOfBirth), "d. M. yyyy", { locale: cs })})
-                  </span>
-                </div>
+                {client.dateOfBirth && (
+                    <div className="flex items-center space-x-3">
+                        <Calendar className="w-4 h-4 text-stone-500" />
+                        <span className="text-stone-800">
+                        {calculateAge(client.dateOfBirth)} let (
+                        {format(new Date(client.dateOfBirth), "d. M. yyyy", { locale: cs })})
+                        </span>
+                    </div>
+                )}
               </CardContent>
             </Card>
 
@@ -172,7 +175,7 @@ export function ClientProfile({ client, onBack, onEdit, getStatusColor, getStatu
                   <div>
                     <div className="text-sm font-medium text-stone-800">Průměrná útrata za návštěvu</div>
                     <div className="text-sm text-stone-600">
-                      {Math.round(client.totalSpent / client.totalVisits).toLocaleString()} Kč
+                      {client.totalVisits > 0 ? `${Math.round(client.totalSpent / client.totalVisits).toLocaleString()} Kč` : 'N/A'}
                     </div>
                   </div>
                 </div>
@@ -256,7 +259,7 @@ export function ClientProfile({ client, onBack, onEdit, getStatusColor, getStatu
                     <div className="flex flex-wrap gap-2">
                       {client.preferences.allergies.map((allergy: string, index: number) => (
                         <Badge key={index} variant="destructive" className="bg-red-100 text-red-800">
-                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          <AlertCircle className="w-3 h-3 mr-1" />
                           {allergy}
                         </Badge>
                       ))}

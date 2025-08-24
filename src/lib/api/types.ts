@@ -1,3 +1,6 @@
+// Tento soubor definuje, jak vypadají data, se kterými pracujeme.
+// Díky tomu máme jistotu, že frontend a backend si rozumí.
+
 export interface Client {
   id: string
   firstName: string
@@ -41,6 +44,7 @@ export interface Reservation {
   updatedAt: string
   client?: Client
   service?: Service
+  therapist?: Therapist
 }
 
 export interface CreateClientDto {
@@ -111,4 +115,28 @@ export interface CreateTherapistDto {
 
 export interface UpdateTherapistDto extends Partial<CreateTherapistDto> {
   isActive?: boolean
+}
+
+// Nové typy pro POS
+export interface Product {
+    id: string;
+    name: string;
+    price: number;
+    stock: number;
+}
+
+export interface TransactionItem {
+    id: string;
+    name: string;
+    price: number;
+    quantity: number;
+    type: 'service' | 'product';
+}
+
+export interface Transaction {
+    id: string;
+    items: TransactionItem[];
+    total: number;
+    paymentMethod: 'cash' | 'card';
+    createdAt: string;
 }

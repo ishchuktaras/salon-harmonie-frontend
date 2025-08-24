@@ -11,17 +11,13 @@ class ApiClient {
       baseURL: API_URL,
     });
 
-    // Toto je klíčová část: "interceptor", který se spustí před každým požadavkem
     this.client.interceptors.request.use((config) => {
-      // Získáme token z cookies
       const token = Cookies.get('token');
-      // Pokud token existuje, přidáme ho do hlavičky 'Authorization'
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
       return config;
     }, (error) => {
-      // Zpracování chyby při odesílání požadavku
       return Promise.reject(error);
     });
   }
@@ -38,6 +34,12 @@ class ApiClient {
 
   async put<T>(url: string, data: any) {
     const response = await this.client.put<T>(url, data);
+    return response.data;
+  }
+  
+  // OPRAVA: Přidána chybějící metoda 'patch'
+  async patch<T>(url: string, data: any) {
+    const response = await this.client.patch<T>(url, data);
     return response.data;
   }
 

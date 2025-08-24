@@ -1,6 +1,8 @@
 import { apiClient } from "./client"
 import type { Reservation, CreateReservationDto, UpdateReservationDto } from "./types"
 
+// Objekt, který seskupuje všechny funkce pro práci s rezervacemi.
+// Je to přehlednější a lépe se to bude udržovat.
 export const reservationsApi = {
   async getAll(): Promise<Reservation[]> {
     return apiClient.get("/reservations")
