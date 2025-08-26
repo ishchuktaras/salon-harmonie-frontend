@@ -11,6 +11,7 @@ declare module "lucide-react" {
   export type LucideIcon = ComponentType<LucideProps>
 
   // Common icons used in the project
+  export const HelpCircle: LucideIcon
   export const Calendar: LucideIcon
   export const LifeBuoy: LucideIcon
   export const Users: LucideIcon

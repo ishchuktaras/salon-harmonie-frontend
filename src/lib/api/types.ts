@@ -1,5 +1,12 @@
-// Tento soubor definuje, jak vypadají data, se kterými pracujeme.
-// Díky tomu máme jistotu, že frontend a backend si rozumí.
+// src/lib/api/types.ts
+
+export interface User {
+  id: number;
+  email: string;
+  role: string;
+  firstName?: string; 
+  lastName?: string; 
+}
 
 export interface Client {
   id: string
@@ -117,7 +124,7 @@ export interface UpdateTherapistDto extends Partial<CreateTherapistDto> {
   isActive?: boolean
 }
 
-// Nové typy pro POS
+
 export interface Product {
     id: string;
     name: string;

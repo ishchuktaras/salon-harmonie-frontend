@@ -22,7 +22,7 @@ export default function Header() {
   const { user, logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-background px-4 sm:px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-xl sm:px-6">
       <Sheet>
         <SheetTrigger asChild>
           <Button size="icon" variant="outline" className="sm:hidden">
@@ -30,7 +30,7 @@ export default function Header() {
             <span className="sr-only">Otevřít menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="sm:max-w-xs">
+        <SheetContent side="left" className="sm:max-w-xs bg-card">
           <nav className="grid gap-6 text-lg font-medium">
             <Link
               href="#"
