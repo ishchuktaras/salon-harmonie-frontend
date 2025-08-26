@@ -1,3 +1,5 @@
+// src/app/(app)/layout.tsx
+
 import type { Metadata } from "next";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
@@ -13,7 +15,8 @@ export default function AppLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+    
+    <div className="flex min-h-screen w-full flex-col bg-background"> 
         <Sidebar />
         <div className="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
             <Header />
