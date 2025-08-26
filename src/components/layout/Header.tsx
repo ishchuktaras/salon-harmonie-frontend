@@ -10,8 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Settings, LifeBuoy, LogOut } from "lucide-react"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Settings, LifeBuoy, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { User, Menu, Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -88,7 +88,6 @@ export default function Header() {
             className="relative flex items-center gap-2 h-9"
           >
             <Avatar className="h-8 w-8">
-              {/* Zde můžete v budoucnu přidat obrázek uživatele */}
               <AvatarFallback className="bg-secondary">
                 {user ? (
                   `${user.firstName?.charAt(0)}${user.lastName?.charAt(0)}`
