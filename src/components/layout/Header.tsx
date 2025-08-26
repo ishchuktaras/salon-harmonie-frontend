@@ -1,4 +1,4 @@
-// src/components/layout/Header.tsx
+// src/components/layout/Header.tsx 
 
 "use client";
 
@@ -11,9 +11,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Settings, LifeBuoy, LogOut } from "lucide-react";
+import {
+  Settings,
+  HelpCircle,
+  LogOut,
+  User,
+  Menu,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { User, Menu, Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -22,7 +28,7 @@ export default function Header() {
   const { user, logout } = useAuth();
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur-xl sm:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
       <Sheet>
         <SheetTrigger asChild>
           <Button size="icon" variant="outline" className="sm:hidden">
@@ -33,7 +39,7 @@ export default function Header() {
         <SheetContent side="left" className="sm:max-w-xs bg-card">
           <nav className="grid gap-6 text-lg font-medium">
             <Link
-              href="#"
+              href="/dashboard"
               className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
             >
               <Sparkles className="h-5 w-5 transition-all group-hover:scale-110" />
@@ -46,7 +52,7 @@ export default function Header() {
               Dashboard
             </Link>
             <Link
-              href="/kalendar"
+              href="/calendar"
               className="flex items-center gap-4 px-2.5 text-foreground"
             >
               Kalendář
@@ -63,34 +69,22 @@ export default function Header() {
             >
               Pokladna
             </Link>
-            <Link
-              href="#"
-              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-            >
-              Reporty
-            </Link>
-            <Link
-              href="/settings"
-              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-            >
-              Nastavení
-            </Link>
           </nav>
         </SheetContent>
       </Sheet>
       <div className="relative ml-auto flex-1 md:grow-0">
-        {/* Search can be added here later if needed */}
+        {/* Později zde může být vyhledávání */}
       </div>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="relative flex items-center gap-2 h-9"
+            className="relative flex items-center gap-3 h-10 px-3"
           >
             <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-secondary">
-                {user ? (
-                  `${user.firstName?.charAt(0)}${user.lastName?.charAt(0)}`
+              <AvatarFallback className="bg-secondary text-secondary-foreground">
+                {user && user.firstName && user.lastName ? (
+                  `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`
                 ) : (
                   <User className="h-5 w-5" />
                 )}
@@ -119,17 +113,17 @@ export default function Header() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href="/settings" className="flex items-center">
+            <Link href="/settings" className="flex items-center cursor-pointer">
               <Settings className="mr-2 h-4 w-4" />
               <span>Nastavení</span>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem>
-            <LifeBuoy className="mr-2 h-4 w-4" />
+          <DropdownMenuItem className="cursor-pointer">
+            <HelpCircle className="mr-2 h-4 w-4" />
             <span>Podpora</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={logout}>
+          <DropdownMenuItem onClick={logout} className="cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />
             <span>Odhlásit se</span>
           </DropdownMenuItem>
