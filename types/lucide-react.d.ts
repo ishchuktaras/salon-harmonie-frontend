@@ -12,7 +12,7 @@ declare module "lucide-react" {
 
   // Common icons used in the project
   export const Calendar: LucideIcon
-  
+  export const LifeBuoy: LucideIcon
   export const Users: LucideIcon
   export const CreditCard: LucideIcon
   export const Settings: LucideIcon

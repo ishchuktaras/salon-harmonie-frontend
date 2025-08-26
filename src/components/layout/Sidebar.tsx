@@ -24,7 +24,7 @@ export default function Sidebar() {
 
   const navItems = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
-    { href: "/calendar", icon: Calendar, label: "Kalendář" }, // OPRAVENO
+    { href: "/calendar", icon: Calendar, label: "Kalendář" },
     { href: "/clients", icon: Users, label: "Klienti" },
     { href: "/pos", icon: ShoppingCart, label: "Pokladna" },
     { href: "#", icon: BarChart3, label: "Reporty" },
