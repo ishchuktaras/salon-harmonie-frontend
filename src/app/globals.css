@@ -4,10 +4,10 @@
 
 @layer base {
   :root {
-    --background: 240 10% 99%; /* Stone 50 */
-    --foreground: 240 10% 3.9%; /* Stone 950 */
+    --background: 38 31% 82.9%;
+    --foreground: 240 10% 3.9%; 
 
-    /* --- OPRAVA KONTRASTU PRO TLAČÍTKA --- */
+    
     /* Primární barva (tmavý kámen) pro pozadí tlačítka */
     --primary: 240 5% 14%; /* Stone 800 - Tmavá */
     /* Text na primární barvě (světlý kámen) pro text tlačítka */
@@ -42,7 +42,7 @@
   }
 
   .dark {
-    /* Zde můžete definovat barvy pro tmavý režim */
+    /* barvy pro tmavý režim */
     --background: 240 10% 3.9%;
     --foreground: 240 5% 94%;
     --primary: 240 6% 96%;
