@@ -1,3 +1,5 @@
+// src/components/crm/client-modal.tsx
+
 "use client"
 
 import { useForm } from "react-hook-form"
@@ -23,6 +25,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { apiClient } from "@/lib/api/client"
+import { Client } from "@/lib/api/types";
 
 const clientFormSchema = z.object({
   firstName: z.string().min(1, { message: "Jméno je povinné." }),
@@ -33,13 +36,14 @@ const clientFormSchema = z.object({
 
 type ClientFormValues = z.infer<typeof clientFormSchema>
 
-interface CreateClientModalProps {
+interface ClientModalProps { 
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  client: Client | null 
 }
 
-export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientModalProps) {
+export default function ClientModal({ isOpen, onClose, onSuccess, client }: ClientModalProps) {
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
     defaultValues: {

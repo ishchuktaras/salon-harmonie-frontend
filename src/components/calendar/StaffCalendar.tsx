@@ -19,7 +19,7 @@ const DnDCalendar = withDragAndDrop(Calendar)
 const StaffCalendar = () => {
   const [events, setEvents] = useState<BigCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  // Stavy pro sledování aktuálního data a pohledu
+  
   const [date, setDate] = useState(new Date());
   const [view, setView] = useState<View>(Views.WEEK);
 

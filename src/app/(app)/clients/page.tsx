@@ -1,45 +1,81 @@
-"use client"
+// súbor: src/app/(app)/clients/page.tsx - OPRAVENÁ VERZIA
 
-import * as React from "react"
-import { PlusCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import ClientList from "@/components/crm/client-list"
-import { CreateClientModal } from "@/components/crm/client-modal"
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { Client } from "@/lib/api/types";
+import { clientsApi } from "@/lib/api/clients";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { PlusCircle } from "lucide-react";
+import ClientList from "@/components/crm/client-list";
+import ClientModal from "@/components/crm/client-modal";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function ClientsPage() {
-  const [isModalOpen, setIsModalOpen] = React.useState(false)
-  // Klíč pro re-renderování seznamu klientů po přidání nového
-  const [clientListKey, setClientListKey] = React.useState(0)
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
-  const handleClientCreated = () => {
-    setClientListKey(prevKey => prevKey + 1)
+  const fetchClients = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await clientsApi.getAll();
+      setClients(data);
+    } catch (error) {
+      console.error("Nepodarilo sa načítať klientov:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
+
+  const handleCreateClient = () => {
+    setSelectedClient(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditClient = (client: Client) => {
+    setSelectedClient(client);
+    setIsModalOpen(true);
+  };
+
+  const handleModalSuccess = () => {
+    setIsModalOpen(false);
+    setSelectedClient(null);
+    fetchClients(); // Znovu načítať dáta po úspešnej operácii
+  };
+
+  if (loading) {
+    return <LoadingSpinner />;
   }
 
   return (
-    <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-      <div className="flex items-center">
-        <div className="flex flex-col w-full">
-            <CardTitle className="font-serif">Klienti</CardTitle>
-            <CardDescription>Seznam všech klientů ve vašem systému.</CardDescription>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <Button size="sm" onClick={() => setIsModalOpen(true)}>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Přidat klienta
-          </Button>
-        </div>
-      </div>
-      <Card>
-        <CardContent>
-          <ClientList key={clientListKey} />
-        </CardContent>
-      </Card>
-      <CreateClientModal
+    <>
+      <PageHeader
+        title="Správa klientov"
+        description="Prehľad všetkých klientov vo vašom systéme."
+      >
+        <Button onClick={handleCreateClient}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Vytvoriť klienta
+        </Button>
+      </PageHeader>
+
+      <ClientList clients={clients} onEdit={handleEditClient} />
+
+      
+      {/* Modálne okno je teraz vždy v DOMe, iba sa mení jeho viditeľnosť */}
+      <ClientModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSuccess={handleClientCreated}
+        onSuccess={handleModalSuccess}
+        client={selectedClient}
       />
-    </div>
-  )
+    </>
+  );
 }

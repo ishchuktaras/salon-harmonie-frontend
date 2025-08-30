@@ -1,6 +1,8 @@
-"use client"
+// soubor: src/components/crm/client-list.tsx - OPRAVENÁ VERZE
 
-import * as React from "react"
+"use client";
+
+import { Client } from "@/lib/api/types";
 import {
   Table,
   TableBody,
@@ -8,98 +10,52 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Client } from "@/lib/api/types"
-import { apiClient } from "@/lib/api/client"
-import { format } from "date-fns"
-import { cs } from "date-fns/locale"
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Edit } from "lucide-react";
 
-export default function ClientList() {
-  const [clients, setClients] = React.useState<Client[]>([])
-  const [searchTerm, setSearchTerm] = React.useState("")
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
+// Definice props, které komponenta přijímá
+interface ClientListProps {
+  clients: Client[];
+  onEdit: (client: Client) => void;
+}
 
-  React.useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        setLoading(true)
-        const data = await apiClient.get<Client[]>("/clients")
-        setClients(data)
-        setError(null)
-      } catch (err) {
-        console.error("Failed to fetch clients:", err)
-        setError("Nepodařilo se načíst data klientů.")
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchClients()
-  }, [])
-
-  const filteredClients = clients.filter(
-    (client) =>
-      client.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.phone?.includes(searchTerm)
-  )
-
-  if (loading) {
-    return <div className="text-center p-8">Načítání klientů...</div>
-  }
-
-  if (error) {
-    return <div className="text-center p-8 text-red-500">{error}</div>
-  }
-
+export default function ClientList({ clients, onEdit }: ClientListProps) {
   return (
-    <div>
-      <div className="py-4">
-        <Input
-          placeholder="Hledat podle jména, emailu nebo telefonu..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-        />
-      </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Jméno</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Telefon</TableHead>
-              <TableHead>Datum registrace</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredClients.length > 0 ? (
-              filteredClients.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell className="font-medium">
-                    {client.firstName} {client.lastName}
-                  </TableCell>
-                  <TableCell>{client.email}</TableCell>
-                  <TableCell>{client.phone || "-"}</TableCell>
-                  <TableCell>
-                    {format(new Date(client.createdAt), "d. M. yyyy", {
-                      locale: cs,
-                    })}
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={4} className="h-24 text-center">
-                  Žádní klienti nenalezeni.
+    <div className="border rounded-lg">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Jméno a Příjmení</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Telefon</TableHead>
+            <TableHead className="text-right">Akce</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {clients.length > 0 ? (
+            clients.map((client) => (
+              <TableRow key={client.id}>
+                <TableCell className="font-medium">{`${client.firstName} ${client.lastName}`}</TableCell>
+                <TableCell>{client.email}</TableCell>
+                <TableCell>{client.phone || "-"}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" onClick={() => onEdit(client)}>
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Upravit</span>
+                  </Button>
                 </TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={4} className="text-center">
+                Nebyly nalezeny žádné klienty.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
-  )
+  );
 }
