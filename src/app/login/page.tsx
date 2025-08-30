@@ -1,68 +1,74 @@
-// soubor: src/app/login/page.tsx
+'use client'
 
-"use client"
-
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useAuth } from "@/components/auth/auth-provider"
-import { useState, FormEvent } from "react"
-import { useRouter } from "next/navigation"
-import { apiClient } from "@/lib/api/client"
-import Image from "next/image" 
-import Link from "next/link"
-import { Leaf } from "lucide-react"
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useAuth } from '@/components/auth/auth-provider'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin@salon.cz")
-  const [password, setPassword] = useState("admin123")
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const router = useRouter()
 
-  const handleSubmit = async (event: FormEvent) => {
-    event.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
     setError(null)
-    setIsLoading(true)
     try {
-      const response = await apiClient.post<{ access_token: string; user: any }>('/auth/login', {
-        email,
-        password,
-      });
-
-      if (response.access_token && response.user) {
-        login(response.access_token, response.user);
-        router.push('/dashboard');
-      } else {
-        throw new Error("Odpověď z API neobsahuje token nebo uživatelská data.");
+      // Here you should authenticate the user and get token and user object from your API
+      // For demonstration, replace with actual API call and response handling
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      if (!response.ok) {
+        throw new Error('Invalid credentials')
       }
-
+      const { token, user } = await response.json()
+      await login(token, user)
+      router.push('/dashboard')
     } catch (err: any) {
-      console.error("Login failed:", err);
-      setError(err.response?.data?.message || "Přihlášení se nezdařilo. Zkontrolujte údaje.");
+      console.error('Login failed:', err)
+      setError('Přihlášení se nezdařilo. Zkontrolujte své údaje.')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
   return (
-    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
-      {/* Levá část s formulářem */}
-      <div className="flex items-center justify-center py-12">
-        <div className="mx-auto grid w-[350px] gap-6">
-          <div className="grid gap-2 text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-                <Leaf className="h-7 w-7 text-primary" />
-                <h1 className="text-3xl font-bold font-serif">Salon Harmonie</h1>
-            </div>
-            <p className="text-balance text-muted-foreground">
-              Zadejte svůj email pro přihlášení do systému
-            </p>
-          </div>
+    <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-950">
+      <Card className="mx-auto max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">Přihlášení</CardTitle>
+          <CardDescription>
+            Zadejte svůj e-mail pro přihlášení do vašeho účtu
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-mail</Label>
               <Input
                 id="email"
                 type="email"
@@ -70,45 +76,53 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
+                disabled={loading}
               />
             </div>
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Heslo</Label>
-                <Link
-                  href="#"
-                  className="ml-auto inline-block text-sm underline"
-                >
-                  Zapomněli jste heslo?
-                </Link>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="ml-auto inline-block cursor-not-allowed text-sm text-gray-500 underline-offset-4 hover:underline"
+                        aria-disabled="true"
+                      >
+                        Zapomněli jste heslo?
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Tato funkce se připravuje.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
               </div>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
+              <Input
+                id="password"
+                type="password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
+                disabled={loading}
               />
             </div>
-            {error && <p className="text-sm text-destructive text-center">{error}</p>}
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Probíhá přihlašování..." : "Přihlásit se"}
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Chyba</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Přihlašování...' : 'Přihlásit se'}
             </Button>
           </form>
-        </div>
-      </div>
-      {/* Pravá část s obrázkem */}
-      <div className="hidden bg-muted lg:block">
-        <Image
-          src="/placeholder.svg"
-          alt="Obrázek interiéru salonu"
-          width="1920"
-          height="1080"
-          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-        />
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
+
