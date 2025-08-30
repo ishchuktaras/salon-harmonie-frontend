@@ -1,149 +1,115 @@
-// src/lib/api/types.ts
+// Tento soubor definuje TypeScript typy pro data přicházející z našeho API.
+// Měl by být v souladu s Prisma schématem na backendu.
 
+// Uživatel systému (zaměstnanec)
 export interface User {
   id: number;
   email: string;
-  role: string;
-  firstName?: string; 
-  lastName?: string; 
+  firstName: string;
+  lastName: string;
+  role: string; // Např. 'ADMIN', 'TERAPEUT', atd.
 }
 
+// Klient salonu
 export interface Client {
-  id: string
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  dateOfBirth?: string
-  address?: string
-  notes?: string
-  loyaltyPoints: number
-  preferences?: string[]
-  allergies?: string[]
-  createdAt: string
-  updatedAt: string
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  pohodaId: string | null; // ID z účetního systému
+  createdAt: string; // ISO 8601 string
 }
 
+// Služba nabízená salonem
 export interface Service {
-  id: string
-  name: string
-  description?: string
-  duration: number // in minutes
-  price: number
-  category: string
-  isActive: boolean
-  therapistIds?: string[]
-  createdAt: string
-  updatedAt: string
+  id: number;
+  name: string;
+  description: string | null;
+  price: number;
+  duration: number; // v minutách
 }
 
+// Rezervace termínu
 export interface Reservation {
-  id: string
-  clientId: string
-  serviceId: string
-  therapistId?: string
-  startTime: string
-  endTime: string
-  status: "pending" | "confirmed" | "cancelled" | "completed"
-  notes?: string
-  totalPrice: number
-  createdAt: string
-  updatedAt: string
-  client?: Client
-  service?: Service
-  therapist?: Therapist
+  id: number;
+  startTime: string; // ISO 8601 string
+  endTime: string; // ISO 8601 string
+  status: string;
+  notes: string | null;
+  clientId: number;
+  serviceId: number;
+  therapistId: number;
+  client?: Client;
+  service?: Service;
+  therapist?: User; // Terapeut je také User
 }
+
+// Produkt k prodeji
+export interface Product {
+  id: number;
+  name: string;
+  description: string | null;
+  price: number;
+  stockQuantity: number;
+  pohodaId: string | null;
+}
+
+// Položka na účtence (transakci)
+export interface TransactionItem {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+  productId?: number;
+  serviceId?: number;
+}
+
+// Transakce (účtenka/prodejka)
+export interface Transaction {
+  id: number;
+  total: number;
+  paymentMethod: string;
+  status: string;
+  createdAt: string; // ISO 8601 string
+  clientId: number;
+  pohodaId: string | null; // ID z účetního systému
+  reservationId: number | null;
+  items: TransactionItem[];
+  client?: Client;
+}
+
+// --- Data Transfer Objects (DTOs) ---
+// Objekty pro vytváření nových záznamů
 
 export interface CreateClientDto {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  dateOfBirth?: string
-  address?: string
-  notes?: string
-  preferences?: string[]
-  allergies?: string[]
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
 }
-
-export interface UpdateClientDto extends Partial<CreateClientDto> {}
 
 export interface CreateReservationDto {
-  clientId: string
-  serviceId: string
-  therapistId?: string
-  startTime: string
-  endTime: string
-  notes?: string
+  startTime: string; // ISO 8601 string
+  endTime: string; // ISO 8601 string
+  clientId: number;
+  serviceId: number;
+  therapistId: number;
+  notes?: string;
 }
 
-export interface UpdateReservationDto extends Partial<CreateReservationDto> {
-  status?: "pending" | "confirmed" | "cancelled" | "completed"
+export interface CreateTransactionItemDto {
+  name: string;
+  price: number;
+  quantity: number;
+  productId?: number;
+  serviceId?: number;
 }
 
-export interface CreateServiceDto {
-  name: string
-  description?: string
-  duration: number
-  price: number
-  category: string
-  therapistIds?: string[]
-}
-
-export interface UpdateServiceDto extends Partial<CreateServiceDto> {
-  isActive?: boolean
-}
-
-export interface Therapist {
-  id: string
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  specializations: string[]
-  isActive: boolean
-  workingHours?: {
-    [key: string]: { start: string; end: string }
-  }
-  createdAt: string
-  updatedAt: string
-}
-
-export interface CreateTherapistDto {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  specializations: string[]
-  workingHours?: {
-    [key: string]: { start: string; end: string }
-  }
-}
-
-export interface UpdateTherapistDto extends Partial<CreateTherapistDto> {
-  isActive?: boolean
-}
-
-
-export interface Product {
-    id: string;
-    name: string;
-    price: number;
-    stock: number;
-}
-
-export interface TransactionItem {
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-    type: 'service' | 'product';
-}
-
-export interface Transaction {
-    id: string;
-    items: TransactionItem[];
-    total: number;
-    paymentMethod: 'cash' | 'card';
-    createdAt: string;
+export interface CreateTransactionDto {
+  total: number;
+  paymentMethod: string;
+  clientId: number;
+  reservationId?: number;
+  items: CreateTransactionItemDto[];
 }
