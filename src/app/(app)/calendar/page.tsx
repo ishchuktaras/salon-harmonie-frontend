@@ -1,9 +1,8 @@
-// soubor: src/app/(app)/calendar/page.tsx
-
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { EventInput } from '@fullcalendar/core';
+import { EventInput, EventDropArg, EventClickArg } from '@fullcalendar/core';
+import { type DateClickArg } from '@fullcalendar/interaction';
 import { reservationsApi } from "@/lib/api/reservations";
 import { Reservation } from "@/lib/api/types";
 import { FullCalendarView } from "@/components/calendar/full-calendar-view";
@@ -12,21 +11,22 @@ import { PageHeader } from "@/components/ui/page-header";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Button } from "@/components/ui/button";
 
-// Typ pro stav modálního okna
+// --- VYLEPŠENÍ (1): Aktualizovaný stav pro modál ---
+// Odkomentovali jsme a povolili jsme předávání dat pro předvyplnění.
 type ModalState = {
   isOpen: boolean;
-  // Zde zatím neřešíme předvyplnění, modal to nepodporuje
-  // initialDate?: Date;
-  // existingReservation?: Reservation;
+  initialDate?: Date;
+  existingReservation?: Reservation;
 };
 
 export default function CalendarPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Nastavujeme počáteční stav jako zavřený bez dat
   const [modalState, setModalState] = useState<ModalState>({ isOpen: false });
 
-  // Funkce pro načtení dat z API
+  // Funkce pro načtení dat z API (beze změny)
   const fetchReservations = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -41,15 +41,15 @@ export default function CalendarPage() {
     }
   }, []);
 
-  // Načtení dat při prvním renderování
+  // Načtení dat při prvním renderování (beze změny)
   useEffect(() => {
     fetchReservations();
   }, [fetchReservations]);
   
-  // Přeformátování rezervací pro FullCalendar
+  // Přeformátování rezervací pro FullCalendar (beze změny)
   const calendarEvents: EventInput[] = useMemo(() => {
     return reservations.map((reservation) => ({
-      id: reservation.id,
+      id: reservation.id.toString(),
       title: `${reservation.client?.firstName || 'Klient'} - ${reservation.service?.name || 'Služba'}`,
       start: new Date(reservation.startTime),
       end: new Date(reservation.endTime),
@@ -59,12 +59,19 @@ export default function CalendarPage() {
     }));
   }, [reservations]);
 
-  // Funkce pro drag-and-drop
-  const handleEventDrop = async (info: any) => {
+  // Funkce pro drag-and-drop (s opravou pro 'null')
+  const handleEventDrop = async (info: EventDropArg) => {
     const { event } = info;
+    
+    if (!event.start) {
+      console.error("Chyba při přesunu: chybí počáteční datum.");
+      info.revert();
+      return;
+    }
+
     const reservationId = event.id;
     const newStartTime = event.start.toISOString();
-    const newEndTime = event.end ? event.end.toISOString() : new Date(event.start.getTime() + 60 * 60 * 1000).toISOString(); // Fallback pokud end chybí
+    const newEndTime = event.end ? event.end.toISOString() : new Date(event.start.getTime() + 60 * 60 * 1000).toISOString(); 
 
     try {
       await reservationsApi.update(reservationId, {
@@ -80,30 +87,29 @@ export default function CalendarPage() {
     }
   };
   
-  // Funkce pro klik na existující rezervaci (pro budoucí editaci)
-  const handleEventClick = (info: any) => {
+  // --- VYLEPŠENÍ (2): Kliknutí na rezervaci otevře modal pro editaci ---
+  const handleEventClick = (info: EventClickArg) => {
     const originalReservation = info.event.extendedProps.originalReservation as Reservation;
-    console.log("Kliknuto na rezervaci:", originalReservation);
-    // Zde otevřete editační modal, až bude připraven
-    // setModalState({ isOpen: true, existingReservation: originalReservation });
-    alert(`Vybrána rezervace pro: ${originalReservation.client?.firstName} ${originalReservation.client?.lastName}`);
+    console.log("Otevírám editaci pro rezervaci:", originalReservation);
+    // Otevřeme modal a předáme mu existující rezervaci
+    setModalState({ isOpen: true, existingReservation: originalReservation });
   };
   
-  // Funkce pro klik na volný časový slot
-  const handleDateClick = (info: any) => {
-    console.log("Kliknuto na datum:", info.dateStr);
-    // Otevře modal pro vytvoření nové rezervace
-    setModalState({ isOpen: true });
+  // --- VYLEPŠENÍ (3): Kliknutí na kalendář předvyplní datum ---
+  const handleDateClick = (info: DateClickArg) => {
+    console.log("Vytvářím novou rezervaci na datum:", info.dateStr);
+    // Otevřeme modal a předáme mu vybrané datum
+    setModalState({ isOpen: true, initialDate: info.date });
   };
 
   // Funkce pro zavření modálu a obnovení dat
   const handleModalSuccess = () => {
-    setModalState({ isOpen: false });
-    fetchReservations(); // Znovu načte rezervace po úspěšném vytvoření nové
+    setModalState({ isOpen: false }); // Resetuje stav
+    fetchReservations();
   };
 
   const handleModalClose = () => {
-    setModalState({ isOpen: false });
+    setModalState({ isOpen: false }); // Resetuje stav
   }
 
   if (isLoading) {
@@ -120,6 +126,7 @@ export default function CalendarPage() {
         title="Kalendář Rezervací"
         description="Přehled všech rezervací a správa časových slotů."
       >
+        {/* Toto tlačítko nyní otevře modal bez předvyplněných dat */}
         <Button onClick={() => setModalState({ isOpen: true })}>
           Vytvořit novou rezervaci
         </Button>
@@ -132,12 +139,14 @@ export default function CalendarPage() {
         onDateClick={handleDateClick}
       />
 
-      {/* Modální okno pro tvorbu */}
+      {/* --- VYLEPŠENÍ (4): Předáváme nové props do modálu --- */}
       {modalState.isOpen && (
         <CreateBookingModal
           isOpen={modalState.isOpen}
           onClose={handleModalClose}
           onSuccess={handleModalSuccess}
+          initialDate={modalState.initialDate}
+          existingReservation={modalState.existingReservation}
         />
       )}
     </>

@@ -1,3 +1,5 @@
+// src/app/(app)/dashboard/page.tsx
+
 import {
   Card,
   CardContent,

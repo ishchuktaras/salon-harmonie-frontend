@@ -1,23 +1,38 @@
-// src/app/(app)/pos/page.tsx
-
 "use client"
 
 import * as React from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Search, PlusCircle } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
-import { TransactionItem } from "@/lib/api/types"
+import { TransactionItem } from "@/lib/api/types" 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+
+// 1. Nahradili jsme `null` za `undefined`.
+// 2. Odebrali jsme vlastnost `type`, která v typu neexistuje.
+const mockItems: Omit<TransactionItem, 'transactionId'>[] = [
+    { id: 1, name: "Relaxační masáž", price: 1200, quantity: 1, serviceId: 1, productId: undefined },
+    { id: 2, name: "Hydratační krém", price: 850, quantity: 1, serviceId: undefined, productId: 1 },
+];
 
 export default function PosPage() {
-  // Testovací data pro zobrazení
-  const [items, setItems] = React.useState<TransactionItem[]>([
-    { id: "1", name: "Relaxační masáž", price: 1200, quantity: 1, type: 'service' },
-    { id: "2", name: "Hydratační krém", price: 850, quantity: 1, type: 'product' },
-  ]);
+  const [currentTransactionItems, setCurrentTransactionItems] = React.useState<TransactionItem[]>([]);
 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = currentTransactionItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const handleAddItem = (value: string) => {
+    const selected = mockItems.find(item => item.id.toString() === value);
+    if (selected) {
+        
+        // 3. Odebrali jsme `transactionId`, které v typu neexistuje.
+        const newItem: TransactionItem = { 
+            ...selected,
+            // ID generujeme unikátní pro klíč v Reactu, v reálné aplikaci by ho přiřadila databáze
+            id: Date.now(), 
+        };
+        setCurrentTransactionItems(prev => [...prev, newItem]);
+    }
+  }
 
   return (
     <div className="grid flex-1 grid-cols-1 md:grid-cols-3 gap-8 p-4">
@@ -29,17 +44,21 @@ export default function PosPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {items.map(item => (
-                <div key={item.id} className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {item.quantity} x {item.price.toLocaleString()} Kč
-                    </p>
+              {currentTransactionItems.length === 0 ? (
+                <p className="text-muted-foreground text-center">Žádné položky v transakci.</p>
+              ) : (
+                currentTransactionItems.map((item, index) => (
+                  <div key={`${item.id}-${index}`} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {item.quantity} x {item.price.toLocaleString()} Kč
+                      </p>
+                    </div>
+                    <p className="font-semibold">{(item.price * item.quantity).toLocaleString()} Kč</p>
                   </div>
-                  <p className="font-semibold">{(item.price * item.quantity).toLocaleString()} Kč</p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <Separator className="my-6" />
             <div className="flex justify-between items-center font-bold text-lg">
@@ -58,17 +77,20 @@ export default function PosPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <label htmlFor="search-reservation" className="text-sm font-medium">Načíst z rezervace</label>
-              <div className="flex gap-2 mt-2">
-                <Input id="search-reservation" placeholder="Hledat klienta..." />
-                <Button variant="outline" size="icon"><Search className="h-4 w-4"/></Button>
-              </div>
+              <label htmlFor="search-item" className="text-sm font-medium">Přidat položku</label>
+              <Select onValueChange={handleAddItem}>
+                <SelectTrigger id="search-item" className="mt-2">
+                  <SelectValue placeholder="Vybrat službu nebo produkt..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockItems.map(item => (
+                    <SelectItem key={item.id} value={item.id.toString()}>
+                      {item.name} - {item.price} Kč
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-
-            <Button className="w-full">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Přidat produkt
-            </Button>
             
             <Separator />
 
@@ -85,3 +107,4 @@ export default function PosPage() {
     </div>
   )
 }
+
