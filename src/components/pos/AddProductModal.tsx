@@ -1,86 +1,102 @@
-//src/components/pos/AddProductModal.tsx
+'use client'
 
-"use client"
-
-import * as React from "react"
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
-import { Product, TransactionItem } from "@/lib/api/types"
-import { apiClient } from "@/lib/api/client"
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { useState, useEffect } from 'react'
+import { Product, TransactionItem } from '@/lib/api/types'
+import { useApi } from '@/hooks/useApi'
 
 interface AddProductModalProps {
   isOpen: boolean
   onClose: () => void
-  onAddProduct: (product: TransactionItem) => void
+  onAddProduct: (item: Omit<TransactionItem, 'id' | 'transactionId'>) => void
 }
 
-export function AddProductModal({ isOpen, onClose, onAddProduct }: AddProductModalProps) {
-  const [products, setProducts] = React.useState<Product[]>([])
+export default function AddProductModal({
+  isOpen,
+  onClose,
+  onAddProduct,
+}: AddProductModalProps) {
+  const [products, setProducts] = useState<Product[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const api = useApi()
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isOpen) {
       const fetchProducts = async () => {
         try {
-          const data = await apiClient.get<Product[]>("/products")
+          // Nahraďte endpointem pro získání produktů
+          const data = await api.apiFetch<Product[]>('/products')
           setProducts(data)
         } catch (error) {
-          console.error("Failed to fetch products:", error)
+          console.error('Failed to fetch products:', error)
         }
       }
       fetchProducts()
     }
-  }, [isOpen])
+  }, [isOpen, api])
 
-  const handleSelectProduct = (product: Product) => {
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+
+  const handleAddProduct = (product: Product) => {
     onAddProduct({
-      id: product.id,
+      productId: product.id,
       name: product.name,
       price: product.price,
       quantity: 1,
-      type: 'product',
+      // Pole 'type' zde nepatří, protože není v definici TransactionItem v types.ts
     })
     onClose()
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="font-serif">Přidat produkt</DialogTitle>
-          <DialogDescription>Vyberte produkt, který chcete přidat k transakci.</DialogDescription>
+          <DialogTitle>Přidat produkt k prodeji</DialogTitle>
         </DialogHeader>
-        <Command>
-          <CommandInput placeholder="Hledat produkt..." />
-          <CommandList>
-            <CommandEmpty>Žádný produkt nenalezen.</CommandEmpty>
-            <CommandGroup>
-              {products.map((product) => (
-                <CommandItem
+        <div className="py-4">
+          <Input
+            placeholder="Hledat produkt..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <ScrollArea className="h-72 mt-4">
+            <div className="space-y-2">
+              {filteredProducts.map((product) => (
+                <div
                   key={product.id}
-                  onSelect={() => handleSelectProduct(product)}
-                  className="flex justify-between"
+                  className="flex items-center justify-between p-2 border rounded-md"
                 >
                   <span>{product.name}</span>
-                  <span className="text-muted-foreground">{product.price.toLocaleString()} Kč</span>
-                </CommandItem>
+                  <Button
+                    size="sm"
+                    onClick={() => handleAddProduct(product)}
+                  >
+                    Přidat
+                  </Button>
+                </div>
               ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+            </div>
+          </ScrollArea>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Zavřít
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
+
