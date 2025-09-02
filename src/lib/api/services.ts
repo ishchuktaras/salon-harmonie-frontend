@@ -1,33 +1,29 @@
 import { apiClient } from "./client"
-import type { Service, CreateServiceDto, UpdateServiceDto } from "./types"
+import type { Reservation, CreateReservationDto, UpdateReservationDto } from "./types"
 
-export const servicesApi = {
-  async getAll(): Promise<Service[]> {
-    return apiClient.get("/services")
+// Objekt, který seskupuje všechny funkce pro práci s rezervacemi.
+export const reservationsApi = {
+  async getAll(): Promise<Reservation[]> {
+    const response = await apiClient.get<Reservation[]>("/reservations")
+    return response
   },
 
-  async getById(id: string): Promise<Service> {
-    return apiClient.get(`/services/${id}`)
+  async getById(id: number): Promise<Reservation> {
+    const response = await apiClient.get<Reservation>(`/reservations/${id}`)
+    return response
   },
 
-  async create(data: CreateServiceDto): Promise<Service> {
-    return apiClient.post("/services", data)
+  async create(data: CreateReservationDto): Promise<Reservation> {
+    const response = await apiClient.post<Reservation>("/reservations", data)
+    return response
   },
 
-  async update(id: string, data: UpdateServiceDto): Promise<Service> {
-    return apiClient.patch(`/services/${id}`, data)
+  async update(id: number, data: UpdateReservationDto): Promise<Reservation> {
+    const response = await apiClient.patch<Reservation>(`/reservations/${id}`, data)
+    return response
   },
 
-  async delete(id: string): Promise<void> {
-    return apiClient.delete(`/services/${id}`)
-  },
-
-  async getByCategory(category: string): Promise<Service[]> {
-    return apiClient.get(`/services?category=${encodeURIComponent(category)}`)
-  },
-
-  async getTherapists(): Promise<any[]> {
-    // This method fetches therapists from the users endpoint with therapist role
-    return apiClient.get("/users?role=therapist")
+  async delete(id: number): Promise<void> {
+    await apiClient.delete(`/reservations/${id}`)
   },
 }

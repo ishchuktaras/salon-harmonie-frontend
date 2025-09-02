@@ -1,4 +1,5 @@
-// src/lib/api/types.ts
+// Tento soubor definuje datové struktury (typy) používané napříč frontendovou aplikací
+// pro komunikaci s API. Zajišťuje, že frontend a backend "mluví stejným jazykem".
 
 export interface User {
   id: number
@@ -12,39 +13,90 @@ export interface Client {
   id: number
   firstName: string
   lastName: string
-  email: string
-  phone: string | null
+  email:string
+  phone?: string | null
+  pohodaId?: string | null
   createdAt: string
-  pohodaId: string | null
 }
+
+// DTO (Data Transfer Object) pro vytváření nového klienta.
+export interface CreateClientDto {
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
+}
+
+// DTO pro aktualizaci klienta. `Partial` znamená, že všechny vlastnosti jsou nepovinné.
+export type UpdateClientDto = Partial<CreateClientDto>
+
+export interface Therapist {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface CreateTherapistDto {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: string;
+}
+export type UpdateTherapistDto = Partial<Omit<CreateTherapistDto, 'password' | 'role'>>
+
 
 export interface Service {
   id: number
   name: string
-  description: string | null
+  description?: string | null
   duration: number // v minutách
   price: number
-  therapists: User[]
+  therapists: Therapist[]
 }
+
+// OPRAVA: Doplněny chybějící typy pro vytváření a úpravu služeb
+export interface CreateServiceDto {
+  name: string
+  description?: string
+  price: number
+  duration: number
+}
+
+export type UpdateServiceDto = Partial<CreateServiceDto>
+
 
 export interface Reservation {
   id: number
-  startTime: string
-  endTime: string
-  status: string
-  notes: string | null
   clientId: number
   serviceId: number
   therapistId: number
+  startTime: string
+  endTime: string
+  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED"
+  notes?: string | null
   client?: Client
   service?: Service
-  therapist?: User
+  therapist?: Therapist
 }
+
+export interface CreateReservationDto {
+  clientId: number;
+  serviceId: number;
+  therapistId: number;
+  startTime: string;
+  notes?: string;
+}
+
+export type UpdateReservationDto = Partial<Omit<CreateReservationDto, 'clientId'>> & {
+  status?: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
+};
+
 
 export interface Product {
   id: number
   name: string
-  description: string | null
   price: number
   stockQuantity: number
 }
@@ -54,43 +106,17 @@ export interface TransactionItem {
   name: string
   price: number
   quantity: number
-  productId: number | null
   serviceId: number | null
+  productId: number | null
 }
 
 export interface Transaction {
   id: number
-  total: number
-  paymentMethod: string
-  status: string
-  createdAt: string
-  clientId: number
-  pohodaId: string | null
   items: TransactionItem[]
-  client: Client
-}
-
-// --- DTOs (Data Transfer Objects) ---
-
-export interface CreateClientDto {
-  firstName: string
-  lastName: string
-  email: string
-  phone?: string
-}
-
-export interface UpdateClientDto extends Partial<CreateClientDto> {}
-
-export interface CreateReservationDto {
-  clientId: number
-  serviceId: number
-  therapistId: number
-  startTime: string
-  endTime: string
-  notes?: string
-}
-
-export interface UpdateReservationDto extends Partial<Omit<CreateReservationDto, 'clientId'>> {
-  status?: string
+  total: number
+  paymentMethod: 'CASH' | 'CARD'
+  status: 'PENDING' | 'COMPLETED' | 'CANCELLED'
+  pohodaId?: string | null
+  createdAt: string
 }
 
