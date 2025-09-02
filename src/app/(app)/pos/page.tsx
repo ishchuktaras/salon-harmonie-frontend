@@ -1,109 +1,129 @@
-"use client"
+'use client'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import { PlusCircle, Trash2 } from 'lucide-react'
+import AddProductModal from '@/components/pos/AddProductModal'
+import { TransactionItem } from '@/lib/api/types'
 
-import * as React from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { TransactionItem } from "@/lib/api/types" 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-
-// 1. Nahradili jsme `null` za `undefined`.
+// OPRAVA: V mock datech byl použit `undefined` místo `null`, což způsobovalo chybu typu.
+// 1. `productId` a `serviceId` musí být `number` nebo `null`.
 // 2. Odebrali jsme vlastnost `type`, která v typu neexistuje.
 const mockItems: Omit<TransactionItem, 'transactionId'>[] = [
-    { id: 1, name: "Relaxační masáž", price: 1200, quantity: 1, serviceId: 1, productId: undefined },
-    { id: 2, name: "Hydratační krém", price: 850, quantity: 1, serviceId: undefined, productId: 1 },
+  { id: 1, name: "Relaxační masáž", price: 1200, quantity: 1, serviceId: 1, productId: null },
+  { id: 2, name: "Hydratační krém", price: 850, quantity: 1, serviceId: null, productId: 1 },
 ];
 
-export default function PosPage() {
-  const [currentTransactionItems, setCurrentTransactionItems] = React.useState<TransactionItem[]>([]);
 
-  const total = currentTransactionItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+export default function POSPage() {
+  const [items, setItems] = useState<Omit<TransactionItem, 'transactionId'>[]>(mockItems)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  const handleAddItem = (value: string) => {
-    const selected = mockItems.find(item => item.id.toString() === value);
-    if (selected) {
-        
-        // 3. Odebrali jsme `transactionId`, které v typu neexistuje.
-        const newItem: TransactionItem = { 
-            ...selected,
-            // ID generujeme unikátní pro klíč v Reactu, v reálné aplikaci by ho přiřadila databáze
-            id: Date.now(), 
-        };
-        setCurrentTransactionItems(prev => [...prev, newItem]);
-    }
+  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+
+  const handleAddItem = (newItem: Omit<TransactionItem, 'id' | 'transactionId'>) => {
+    // Prozatím přidáváme s dočasným ID, v reálu by ID přiřadila databáze
+    setItems([...items, { ...newItem, id: Math.random() }])
+  }
+
+  const handleRemoveItem = (itemId: number) => {
+    setItems(items.filter((item) => item.id !== itemId))
+  }
+
+  const handleQuantityChange = (itemId: number, quantity: number) => {
+    setItems(
+      items.map((item) =>
+        item.id === itemId ? { ...item, quantity: Math.max(1, quantity) } : item
+      )
+    )
   }
 
   return (
-    <div className="grid flex-1 grid-cols-1 md:grid-cols-3 gap-8 p-4">
-      {/* Levá část - Účtenka */}
-      <div className="md:col-span-2">
+    <div className="container mx-auto p-4 grid grid-cols-3 gap-8">
+      <div className="col-span-2">
         <Card>
           <CardHeader>
-            <CardTitle className="font-serif">Aktuální transakce</CardTitle>
+            <CardTitle>Položky účtu</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {currentTransactionItems.length === 0 ? (
-                <p className="text-muted-foreground text-center">Žádné položky v transakci.</p>
-              ) : (
-                currentTransactionItems.map((item, index) => (
-                  <div key={`${item.id}-${index}`} className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.quantity} x {item.price.toLocaleString()} Kč
-                      </p>
-                    </div>
-                    <p className="font-semibold">{(item.price * item.quantity).toLocaleString()} Kč</p>
+              {items.map((item) => (
+                <div key={item.id} className="flex items-center gap-4">
+                  <div className="flex-1">
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {item.price.toLocaleString('cs-CZ')} Kč
+                    </p>
                   </div>
-                ))
-              )}
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={item.quantity}
+                      onChange={(e) =>
+                        handleQuantityChange(item.id, parseInt(e.target.value))
+                      }
+                      className="w-16 h-8 text-center"
+                      min="1"
+                    />
+                    <span>x</span>
+                  </div>
+                  <p className="w-24 text-right font-semibold">
+                    {(item.price * item.quantity).toLocaleString('cs-CZ')} Kč
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-500"
+                    onClick={() => handleRemoveItem(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
-            <Separator className="my-6" />
-            <div className="flex justify-between items-center font-bold text-lg">
-              <p>Celkem k úhradě</p>
-              <p>{total.toLocaleString()} Kč</p>
-            </div>
+            <Separator className="my-4" />
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Přidat produkt
+            </Button>
           </CardContent>
         </Card>
       </div>
-
-      {/* Pravá část - Ovládací prvky */}
-      <div>
+      <div className="col-span-1">
         <Card>
           <CardHeader>
-            <CardTitle className="font-serif">Možnosti</CardTitle>
+            <CardTitle>Platba</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div>
-              <label htmlFor="search-item" className="text-sm font-medium">Přidat položku</label>
-              <Select onValueChange={handleAddItem}>
-                <SelectTrigger id="search-item" className="mt-2">
-                  <SelectValue placeholder="Vybrat službu nebo produkt..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockItems.map(item => (
-                    <SelectItem key={item.id} value={item.id.toString()}>
-                      {item.name} - {item.price} Kč
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex justify-between text-xl font-bold">
+              <span>Celkem:</span>
+              <span>{total.toLocaleString('cs-CZ')} Kč</span>
             </div>
-            
-            <Separator />
-
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-center">Dokončit platbu</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <Button variant="outline" size="lg">Hotově</Button>
-                <Button size="lg">Kartou</Button>
-              </div>
+            <div className="space-y-2">
+              <Button size="lg" className="w-full">
+                Hotově
+              </Button>
+              <Button size="lg" className="w-full">
+                Kartou
+              </Button>
+              <Button size="lg" variant="secondary" className="w-full">
+                Rozdělit platbu
+              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
+      <AddProductModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onAddProduct={handleAddItem}
+      />
     </div>
   )
 }
