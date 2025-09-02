@@ -1,3 +1,5 @@
+// src/components/pos/AddProductModal.tsx
+
 'use client'
 
 import {
@@ -33,7 +35,7 @@ export default function AddProductModal({
     if (isOpen) {
       const fetchProducts = async () => {
         try {
-          // Nahraďte endpointem pro získání produktů
+         
           const data = await api.apiFetch<Product[]>('/products')
           setProducts(data)
         } catch (error) {
@@ -51,10 +53,11 @@ export default function AddProductModal({
   const handleAddProduct = (product: Product) => {
     onAddProduct({
       productId: product.id,
+      serviceId: null,
       name: product.name,
       price: product.price,
       quantity: 1,
-      // Pole 'type' zde nepatří, protože není v definici TransactionItem v types.ts
+      
     })
     onClose()
   }

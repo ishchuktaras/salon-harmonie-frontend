@@ -1,115 +1,96 @@
-// Tento soubor definuje TypeScript typy pro data přicházející z našeho API.
-// Měl by být v souladu s Prisma schématem na backendu.
+// src/lib/api/types.ts
 
-// Uživatel systému (zaměstnanec)
 export interface User {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: string; // Např. 'ADMIN', 'TERAPEUT', atd.
+  id: number
+  email: string
+  role: string
+  firstName?: string
+  lastName?: string
 }
 
-// Klient salonu
 export interface Client {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phone: string | null;
-  pohodaId: string | null; // ID z účetního systému
-  createdAt: string; // ISO 8601 string
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+  phone: string | null
+  createdAt: string
+  pohodaId: string | null
 }
 
-// Služba nabízená salonem
 export interface Service {
-  id: number;
-  name: string;
-  description: string | null;
-  price: number;
-  duration: number; // v minutách
+  id: number
+  name: string
+  description: string | null
+  duration: number // v minutách
+  price: number
+  therapists: User[]
 }
 
-// Rezervace termínu
 export interface Reservation {
-  id: number;
-  startTime: string; // ISO 8601 string
-  endTime: string; // ISO 8601 string
-  status: string;
-  notes: string | null;
-  clientId: number;
-  serviceId: number;
-  therapistId: number;
-  client?: Client;
-  service?: Service;
-  therapist?: User; // Terapeut je také User
+  id: number
+  startTime: string
+  endTime: string
+  status: string
+  notes: string | null
+  clientId: number
+  serviceId: number
+  therapistId: number
+  client?: Client
+  service?: Service
+  therapist?: User
 }
 
-// Produkt k prodeji
 export interface Product {
-  id: number;
-  name: string;
-  description: string | null;
-  price: number;
-  stockQuantity: number;
-  pohodaId: string | null;
+  id: number
+  name: string
+  description: string | null
+  price: number
+  stockQuantity: number
 }
 
-// Položka na účtence (transakci)
 export interface TransactionItem {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  productId?: number;
-  serviceId?: number;
+  id: number
+  name: string
+  price: number
+  quantity: number
+  productId: number | null
+  serviceId: number | null
 }
 
-// Transakce (účtenka/prodejka)
 export interface Transaction {
-  id: number;
-  total: number;
-  paymentMethod: string;
-  status: string;
-  createdAt: string; // ISO 8601 string
-  clientId: number;
-  pohodaId: string | null; // ID z účetního systému
-  reservationId: number | null;
-  items: TransactionItem[];
-  client?: Client;
+  id: number
+  total: number
+  paymentMethod: string
+  status: string
+  createdAt: string
+  clientId: number
+  pohodaId: string | null
+  items: TransactionItem[]
+  client: Client
 }
 
-// --- Data Transfer Objects (DTOs) ---
-// Objekty pro vytváření nových záznamů
+// --- DTOs (Data Transfer Objects) ---
 
 export interface CreateClientDto {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
 }
+
+export interface UpdateClientDto extends Partial<CreateClientDto> {}
 
 export interface CreateReservationDto {
-  startTime: string; // ISO 8601 string
-  endTime: string; // ISO 8601 string
-  clientId: number;
-  serviceId: number;
-  therapistId: number;
-  notes?: string;
+  clientId: number
+  serviceId: number
+  therapistId: number
+  startTime: string
+  endTime: string
+  notes?: string
 }
 
-export interface CreateTransactionItemDto {
-  name: string;
-  price: number;
-  quantity: number;
-  productId?: number;
-  serviceId?: number;
+export interface UpdateReservationDto extends Partial<Omit<CreateReservationDto, 'clientId'>> {
+  status?: string
 }
 
-export interface CreateTransactionDto {
-  total: number;
-  paymentMethod: string;
-  clientId: number;
-  reservationId?: number;
-  items: CreateTransactionItemDto[];
-}

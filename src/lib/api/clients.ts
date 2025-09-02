@@ -3,30 +3,26 @@ import type { Client, CreateClientDto, UpdateClientDto } from "./types"
 
 export const clientsApi = {
   async getAll(): Promise<Client[]> {
-    return apiClient.get("/clients")
+    const response = await apiClient.get<Client[]>("/clients")
+    return response
   },
 
-  async getById(id: string): Promise<Client> {
-    return apiClient.get(`/clients/${id}`)
+  async getById(id: number): Promise<Client> {
+    const response = await apiClient.get<Client>(`/clients/${id}`)
+    return response
   },
 
   async create(data: CreateClientDto): Promise<Client> {
-    return apiClient.post("/clients", data)
+    const response = await apiClient.post<Client>("/clients", data)
+    return response
   },
 
-  async update(id: string, data: UpdateClientDto): Promise<Client> {
-    return apiClient.patch(`/clients/${id}`, data)
+  async update(id: number, data: UpdateClientDto): Promise<Client> {
+    const response = await apiClient.patch<Client>(`/clients/${id}`, data)
+    return response
   },
 
-  async delete(id: string): Promise<void> {
-    return apiClient.delete(`/clients/${id}`)
-  },
-
-  async search(query: string): Promise<Client[]> {
-    return apiClient.get(`/clients/search?q=${encodeURIComponent(query)}`)
-  },
-
-  async getReservations(id: string): Promise<any[]> {
-    return apiClient.get(`/clients/${id}/reservations`)
+  async delete(id: number): Promise<void> {
+    await apiClient.delete(`/clients/${id}`)
   },
 }
