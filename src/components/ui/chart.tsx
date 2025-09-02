@@ -68,8 +68,8 @@ ChartContainer.displayName = "Chart"
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const configString = Object.entries(config)
     .map(([key, value]) => {
-      const color = value.theme?.light ?? value.color
-      return color ? `${key}: ${color}` : ""
+      const color = value.theme?.light ?? value.color;
+      return color ? `${key}: ${color}` : ''
     })
     .join(";")
 
@@ -176,7 +176,6 @@ const ChartTooltipContent = React.forwardRef<
             <div className={cn("text-muted-foreground")}>
               {itemConfig?.label || item.name}
             </div>
-            {/* --- OPRAVA ZDE: Přidána kontrola pro undefined hodnoty --- */}
             {formatter && item.value !== undefined && item.name !== undefined && (
               <div className={cn("font-bold")}>
                 {formatter(item.value, item.name, item, 0, payload)}
