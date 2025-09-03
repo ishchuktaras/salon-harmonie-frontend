@@ -1,7 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import Cookies from 'js-cookie';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import Cookies from "js-cookie";
 
 interface User {
   id: string;
@@ -14,7 +20,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (token: string, user: User) => void;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -27,8 +33,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = Cookies.get('token');
-    const storedUser = Cookies.get('user');
+    const storedToken = Cookies.get("token");
+    const storedUser = Cookies.get("user");
 
     if (storedToken && storedUser) {
       try {
@@ -37,27 +43,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error("Failed to parse user data from cookies", error);
         // Clear corrupted cookies
-        Cookies.remove('token');
-        Cookies.remove('user');
+        Cookies.remove("token");
+        Cookies.remove("user");
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = (newToken: string, userData: User) => {
-    setToken(newToken);
-    setUser(userData);
-    Cookies.set('token', newToken, { expires: 7, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
-    Cookies.set('user', JSON.stringify(userData), { expires: 7, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
+  const login = async (email: string, password: string) => {
+    // volání API
+    const response = await fetch("/api/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    const user: User = await response.json();
+    setUser(user);
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
-    Cookies.remove('token');
-    Cookies.remove('user');
+    Cookies.remove("token");
+    Cookies.remove("user");
     // Redirect to login page to ensure clean state
-    window.location.href = '/login';
+    window.location.href = "/login";
   };
 
   return (
@@ -70,7 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

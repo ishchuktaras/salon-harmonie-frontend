@@ -56,7 +56,6 @@ export interface Service {
   therapists: Therapist[]
 }
 
-// OPRAVA: Doplněny chybějící typy pro vytváření a úpravu služeb
 export interface CreateServiceDto {
   name: string
   description?: string
@@ -89,6 +88,7 @@ export interface CreateReservationDto {
   notes?: string;
 }
 
+// OPRAVA: Doplněn chybějící typ pro aktualizaci rezervace
 export type UpdateReservationDto = Partial<Omit<CreateReservationDto, 'clientId'>> & {
   status?: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
 };
