@@ -1,5 +1,3 @@
-// src/components/auth/auth-provider.tsx
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -19,6 +17,7 @@ interface LoginResponse {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: { name: string; email: string; role: string } | null;
+  token: string | null;
   login: (email: string, pass: string) => Promise<LoginResponse>;
   logout: () => void;
   isLoading: boolean;
@@ -28,15 +27,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
+  // ---  Přidání stavu pro token ---
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = Cookies.get('token');
+    // ---  Přejmenování proměnné, aby nekolidovala se stavem ---
+    const tokenFromCookie = Cookies.get('token');
     const storedUser = localStorage.getItem('authUser');
     
-    if (token && storedUser) {
+    if (tokenFromCookie && storedUser) {
       try {
         setUser(JSON.parse(storedUser));
+        //  Nastavení tokenu do stavu ---
+        setToken(tokenFromCookie);
       } catch (e) {
         console.error("Failed to parse user data from localStorage", e);
         localStorage.removeItem('authUser');
@@ -56,6 +60,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     Cookies.set('token', access_token, { expires: 7, secure: process.env.NODE_ENV === 'production' });
     localStorage.setItem('authUser', JSON.stringify({ name: userData.name, email: userData.email, role: userData.role }));
     setUser({ name: userData.name, email: userData.email, role: userData.role });
+    // ---  Nastavení tokenu do stavu po přihlášení ---
+    setToken(access_token);
 
     return response;
   };
@@ -64,12 +70,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     Cookies.remove('token');
     localStorage.removeItem('authUser');
     setUser(null);
+    // ---  Vymazání tokenu ze stavu po odhlášení ---
+    setToken(null);
     window.location.href = '/login';
   };
 
   const value = {
     isAuthenticated: !!user,
     user,
+    token, 
     login,
     logout,
     isLoading,
