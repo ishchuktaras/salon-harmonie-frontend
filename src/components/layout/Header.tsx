@@ -1,5 +1,3 @@
-// src/components/layout/Header.tsx 
-
 "use client";
 
 import {
@@ -83,8 +81,11 @@ export default function Header() {
           >
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-secondary text-secondary-foreground">
-                {user && user.firstName && user.lastName ? (
-                  `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`
+                {user && user.name ? (
+                  user.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
                 ) : (
                   <User className="h-5 w-5" />
                 )}
@@ -92,7 +93,8 @@ export default function Header() {
             </Avatar>
             <div className="text-left hidden md:block">
               <p className="text-sm font-medium leading-none">
-                {user ? `${user.firstName} ${user.lastName}` : "Uživatel"}
+                
+                {user ? user.name : "Uživatel"}
               </p>
               <p className="text-xs text-muted-foreground leading-none">
                 {user ? user.role : ""}
@@ -104,7 +106,8 @@ export default function Header() {
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">
-                {user ? `${user.firstName} ${user.lastName}` : "Můj účet"}
+                
+                {user ? user.name : "Můj účet"}
               </p>
               <p className="text-xs leading-none text-muted-foreground">
                 {user ? user.email : ""}
