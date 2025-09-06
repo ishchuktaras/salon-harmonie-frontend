@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useAuth } from './auth/auth-provider'; // Importujeme náš hook
+import { useAuth } from './auth/auth-provider'; 
 import { useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -85,7 +85,7 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Heslo</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
+                <Input type="password" placeholder="" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

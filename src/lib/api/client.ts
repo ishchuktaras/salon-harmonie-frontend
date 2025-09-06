@@ -1,9 +1,8 @@
-// src/lib/api/client.ts
-
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+// --- OPRAVA ZDE: Odebrán /api prefix ---
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 class ApiClient {
   private client;
