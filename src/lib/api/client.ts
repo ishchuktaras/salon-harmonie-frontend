@@ -3,7 +3,7 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 class ApiClient {
   private client;
@@ -39,7 +39,6 @@ class ApiClient {
     return response.data;
   }
   
-  // OPRAVA: Přidána chybějící metoda 'patch'
   async patch<T>(url: string, data: any) {
     const response = await this.client.patch<T>(url, data);
     return response.data;

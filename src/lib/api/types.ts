@@ -1,59 +1,52 @@
-// Tento soubor definuje datové struktury (typy) používané napříč frontendovou aplikací
-// pro komunikaci s API. Zajišťuje, že frontend a backend "mluví stejným jazykem".
+// Soubor: frontend/src/lib/api/types.ts
 
+// --- Uživatelé a Terapeuté ---
+// OPRAVA: Sjednoceno s backend odpovědí (obsahuje firstName a lastName)
 export interface User {
   id: number
   email: string
   role: string
-  firstName?: string
-  lastName?: string
+  firstName: string
+  lastName: string
 }
 
+export interface Therapist {
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+}
+
+export type CreateTherapistDto = Omit<User, 'id'>
+export type UpdateTherapistDto = Partial<CreateTherapistDto>
+
+// --- Klienti ---
 export interface Client {
   id: number
   firstName: string
   lastName: string
-  email:string
-  phone?: string | null
-  pohodaId?: string | null
+  email: string
+  phone: string | null
+  pohodaId: string | null
   createdAt: string
 }
 
-// DTO (Data Transfer Object) pro vytváření nového klienta.
 export interface CreateClientDto {
   firstName: string
   lastName: string
   email: string
   phone?: string
 }
-
-// DTO pro aktualizaci klienta. `Partial` znamená, že všechny vlastnosti jsou nepovinné.
 export type UpdateClientDto = Partial<CreateClientDto>
 
-export interface Therapist {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-}
-
-export interface CreateTherapistDto {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  role: string;
-}
-export type UpdateTherapistDto = Partial<Omit<CreateTherapistDto, 'password' | 'role'>>
-
-
+// --- Služby ---
 export interface Service {
   id: number
   name: string
-  description?: string | null
-  duration: number // v minutách
+  description: string | null
   price: number
-  therapists: Therapist[]
+  duration: number // v minutách
+  therapists: User[]
 }
 
 export interface CreateServiceDto {
@@ -61,39 +54,32 @@ export interface CreateServiceDto {
   description?: string
   price: number
   duration: number
+  therapistIds?: number[]
 }
-
 export type UpdateServiceDto = Partial<CreateServiceDto>
 
-
+// --- Rezervace ---
 export interface Reservation {
   id: number
+  startTime: string
+  endTime: string
+  status: string
+  notes: string | null
+  client?: Client
+  service?: Service
+  therapist?: User
+}
+
+export interface CreateReservationDto {
   clientId: number
   serviceId: number
   therapistId: number
   startTime: string
-  endTime: string
-  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED"
-  notes?: string | null
-  client?: Client
-  service?: Service
-  therapist?: Therapist
+  notes?: string
 }
+export type UpdateReservationDto = Partial<Omit<CreateReservationDto, 'clientId'>>
 
-export interface CreateReservationDto {
-  clientId: number;
-  serviceId: number;
-  therapistId: number;
-  startTime: string;
-  notes?: string;
-}
-
-// OPRAVA: Doplněn chybějící typ pro aktualizaci rezervace
-export type UpdateReservationDto = Partial<Omit<CreateReservationDto, 'clientId'>> & {
-  status?: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
-};
-
-
+// --- Transakce a Produkty ---
 export interface Product {
   id: number
   name: string
@@ -112,11 +98,12 @@ export interface TransactionItem {
 
 export interface Transaction {
   id: number
-  items: TransactionItem[]
   total: number
-  paymentMethod: 'CASH' | 'CARD'
-  status: 'PENDING' | 'COMPLETED' | 'CANCELLED'
-  pohodaId?: string | null
+  paymentMethod: string
+  status: string
   createdAt: string
+  items: TransactionItem[]
+  client: Client
+  pohodaId: string | null
 }
 

@@ -1,85 +1,87 @@
+// src/components/auth/auth-provider.tsx
+
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
-import Cookies from "js-cookie";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { apiClient } from '@/lib/api/client';
+import Cookies from 'js-cookie';
 
-interface User {
-  id: string;
-  email: string;
-  role: string;
-  firstName?: string;
-  lastName?: string;
+interface LoginResponse {
+  access_token: string;
+  user: {
+    id: number;
+    email: string;
+    name: string;
+    role: string;
+  }
 }
 
 interface AuthContextType {
-  user: User | null;
-  token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  isAuthenticated: boolean;
+  user: { name: string; email: string; role: string } | null;
+  login: (email: string, pass: string) => Promise<LoginResponse>;
   logout: () => void;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedToken = Cookies.get("token");
-    const storedUser = Cookies.get("user");
-
-    if (storedToken && storedUser) {
+    const token = Cookies.get('token');
+    const storedUser = localStorage.getItem('authUser');
+    
+    if (token && storedUser) {
       try {
-        setToken(storedToken);
         setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Failed to parse user data from cookies", error);
-        // Clear corrupted cookies
-        Cookies.remove("token");
-        Cookies.remove("user");
+      } catch (e) {
+        console.error("Failed to parse user data from localStorage", e);
+        localStorage.removeItem('authUser');
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    // volání API
-    const response = await fetch("/api/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
+  const login = async (email: string, pass: string): Promise<LoginResponse> => {
+    const response = await apiClient.post<LoginResponse>('/auth/login', {
+      email,
+      password: pass,
     });
-    const user: User = await response.json();
-    setUser(user);
+
+    const { access_token, user: userData } = response;
+    
+    Cookies.set('token', access_token, { expires: 7, secure: process.env.NODE_ENV === 'production' });
+    localStorage.setItem('authUser', JSON.stringify({ name: userData.name, email: userData.email, role: userData.role }));
+    setUser({ name: userData.name, email: userData.email, role: userData.role });
+
+    return response;
   };
 
   const logout = () => {
-    setToken(null);
+    Cookies.remove('token');
+    localStorage.removeItem('authUser');
     setUser(null);
-    Cookies.remove("token");
-    Cookies.remove("user");
-    // Redirect to login page to ensure clean state
-    window.location.href = "/login";
+    window.location.href = '/login';
   };
 
-  return (
-    <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = {
+    isAuthenticated: !!user,
+    user,
+    login,
+    logout,
+    isLoading,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
