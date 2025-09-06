@@ -1,8 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api/client';
-import Cookies from 'js-cookie';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { apiClient } from "@/lib/api/client";
+import Cookies from "js-cookie";
 
 interface LoginResponse {
   access_token: string;
@@ -11,7 +11,7 @@ interface LoginResponse {
     email: string;
     name: string;
     role: string;
-  }
+  };
 }
 
 interface AuthContextType {
@@ -26,59 +26,82 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null);
-  // ---  Přidání stavu pro token ---
+  const [user, setUser] = useState<{
+    name: string;
+    email: string;
+    role: string;
+  } | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // ---  Přejmenování proměnné, aby nekolidovala se stavem ---
-    const tokenFromCookie = Cookies.get('token');
-    const storedUser = localStorage.getItem('authUser');
-    
+    const tokenFromCookie = Cookies.get("token");
+    const storedUser = localStorage.getItem("authUser");
+
     if (tokenFromCookie && storedUser) {
       try {
         setUser(JSON.parse(storedUser));
-        //  Nastavení tokenu do stavu ---
         setToken(tokenFromCookie);
       } catch (e) {
         console.error("Failed to parse user data from localStorage", e);
-        localStorage.removeItem('authUser');
+        localStorage.removeItem("authUser");
       }
     }
     setIsLoading(false);
   }, []);
 
   const login = async (email: string, pass: string): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>('/auth/login', {
-      email,
-      password: pass,
-    });
+    try {
+      const response = await apiClient.post<LoginResponse>("/auth/login", {
+        email,
+        password: pass,
+      });
 
-    const { access_token, user: userData } = response;
-    
-    Cookies.set('token', access_token, { expires: 7, secure: process.env.NODE_ENV === 'production' });
-    localStorage.setItem('authUser', JSON.stringify({ name: userData.name, email: userData.email, role: userData.role }));
-    setUser({ name: userData.name, email: userData.email, role: userData.role });
-    // ---  Nastavení tokenu do stavu po přihlášení ---
-    setToken(access_token);
+      const { access_token, user: userData } = response;
 
-    return response;
+      Cookies.set("token", access_token, {
+        expires: 7,
+        secure: process.env.NODE_ENV === "production",
+      });
+      localStorage.setItem(
+        "authUser",
+        JSON.stringify({
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+        })
+      );
+      setUser({
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+      });
+      setToken(access_token);
+
+      return response;
+    } catch (error: any) {
+      if (error.response) {
+        console.error("Chyba odpovědi od serveru:", error.response.data);
+      } else {
+        console.error("Chyba při přihlašování:", error.message);
+      }
+      throw error;
+    }
   };
 
+
   const logout = () => {
-    Cookies.remove('token');
-    localStorage.removeItem('authUser');
+    Cookies.remove("token");
+    localStorage.removeItem("authUser");
     setUser(null);
-    // ---  Vymazání tokenu ze stavu po odhlášení ---
     setToken(null);
-    window.location.href = '/login';
+    window.location.href = "/login";
   };
 
   const value = {
     isAuthenticated: !!user,
     user,
-    token, 
+    token,
     login,
     logout,
     isLoading,
@@ -90,7 +113,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
