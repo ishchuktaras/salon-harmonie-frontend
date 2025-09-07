@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { useApi } from '@/hooks/useApi'
+import { useApi } from '@/hooks/use-api';
 import {
   Alert,
   AlertDescription,

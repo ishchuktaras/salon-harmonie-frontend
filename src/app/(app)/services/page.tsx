@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Service } from '@/lib/api/types'
-import { useApi } from '@/hooks/useApi'
+import { useApi } from '@/hooks/use-api';
 import { Skeleton } from '@/components/ui/skeleton'
 
 // Mock data pro lokální vývoj, pokud API ještě neběží

@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useState, useEffect } from 'react'
 import { Product, TransactionItem } from '@/lib/api/types'
-import { useApi } from '@/hooks/use-api' // <-- Add this line
+import { useApi } from '@/hooks/use-api' 
 
 interface AddProductModalProps {
   isOpen: boolean
