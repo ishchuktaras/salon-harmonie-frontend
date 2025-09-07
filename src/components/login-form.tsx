@@ -1,5 +1,3 @@
-// src/components/login-form.tsx
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,10 +13,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useAuth } from './auth/auth-provider'; 
+import { useAuth } from '@/hooks/use-auth'; 
 import { useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email({
@@ -30,7 +29,8 @@ const formSchema = z.object({
 });
 
 export function LoginForm() {
-  const { login } = useAuth(); // Získáme login funkci z kontextu
+  const { login } = useAuth();
+  const router = useRouter(); 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -46,10 +46,15 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      // Zavoláme login funkci z AuthContext
       await login(values.email, values.password);
+      router.push('/dashboard'); 
     } catch (err: any) {
-      setError(err.message || 'Neznámá chyba');
+       // Vylepšené chybové hlášky
+      if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Došlo k neznámé chybě. Zkuste to prosím znovu.');
+      }
     } finally {
       setLoading(false);
     }
@@ -85,7 +90,7 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Heslo</FormLabel>
               <FormControl>
-                <Input type="password" placeholder="" {...field} />
+                <Input type="password" placeholder="••••••••" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

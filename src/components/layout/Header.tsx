@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { useAuth } from "@/hooks/use-auth"; 
+import { navItems, settingsNavItem } from "@/config/nav";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,21 +12,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Settings,
-  HelpCircle,
-  LogOut,
-  User,
-  Menu,
-  Sparkles,
-} from "lucide-react";
+import { HelpCircle, LogOut, User, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import Link from "next/link";
-import { useAuth } from "@/components/auth/auth-provider";
+import { Role } from "@/config/roles";
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const userRole = user?.role as Role;
+
+  const accessibleNavItems = navItems.filter(item => 
+    !item.roles || item.roles.length === 0 || (userRole && item.roles.includes(userRole))
+  );
+  
+  const canAccessSettings = userRole && settingsNavItem.roles.includes(userRole);
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
@@ -43,36 +45,29 @@ export default function Header() {
               <Sparkles className="h-5 w-5 transition-all group-hover:scale-110" />
               <span className="sr-only">Salon Harmonie</span>
             </Link>
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/calendar"
-              className="flex items-center gap-4 px-2.5 text-foreground"
-            >
-              Kalendář
-            </Link>
-            <Link
-              href="/clients"
-              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-            >
-              Klienti
-            </Link>
-            <Link
-              href="/pos"
-              className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-            >
-              Pokladna
-            </Link>
+            {accessibleNavItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+              >
+                <item.icon className="h-5 w-5 mr-2" />
+                {item.label}
+              </Link>
+            ))}
+            {canAccessSettings && (
+               <Link
+                href={settingsNavItem.href}
+                className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+              >
+                <settingsNavItem.icon className="h-5 w-5 mr-2" />
+                {settingsNavItem.label}
+              </Link>
+            )}
           </nav>
         </SheetContent>
       </Sheet>
-      <div className="relative ml-auto flex-1 md:grow-0">
-        {/* Později zde může být vyhledávání */}
-      </div>
+      <div className="relative ml-auto flex-1 md:grow-0" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -81,23 +76,15 @@ export default function Header() {
           >
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-secondary text-secondary-foreground">
-                {user && user.name ? (
-                  user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                ) : (
-                  <User className="h-5 w-5" />
-                )}
+                {user?.name ? user.name.split(' ').map(n => n[0]).join('') : <User className="h-5 w-5" />}
               </AvatarFallback>
             </Avatar>
             <div className="text-left hidden md:block">
               <p className="text-sm font-medium leading-none">
-                
-                {user ? user.name : "Uživatel"}
+                {user?.name || "Uživatel"}
               </p>
               <p className="text-xs text-muted-foreground leading-none">
-                {user ? user.role : ""}
+                {user?.role || ""}
               </p>
             </div>
           </Button>
@@ -106,21 +93,22 @@ export default function Header() {
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">
-                
-                {user ? user.name : "Můj účet"}
+                {user?.name || "Můj účet"}
               </p>
               <p className="text-xs leading-none text-muted-foreground">
-                {user ? user.email : ""}
+                {user?.email || ""}
               </p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link href="/settings" className="flex items-center cursor-pointer">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Nastavení</span>
-            </Link>
-          </DropdownMenuItem>
+          {canAccessSettings && (
+            <DropdownMenuItem asChild>
+              <Link href={settingsNavItem.href} className="flex items-center cursor-pointer">
+                <settingsNavItem.icon className="mr-2 h-4 w-4" />
+                <span>{settingsNavItem.label}</span>
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem className="cursor-pointer">
             <HelpCircle className="mr-2 h-4 w-4" />
             <span>Podpora</span>
