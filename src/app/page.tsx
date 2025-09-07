@@ -1,4 +1,7 @@
-// src/app/page.tsx - OPRAVENÁ VERZE
+// Soubor: src/app/page.tsx
+// Popis: Toto je nová hlavní stránka (landing page) aplikace.
+// Je to serverová komponenta (neobsahuje 'use client'), protože nevyužívá
+// žádné klientské háčky jako useAuth, useState, atd.
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -157,3 +160,4 @@ export default function HomePage() {
     </div>
   )
 }
+

@@ -16,7 +16,7 @@ import {
   Star,
   Clock,
   User,
-  AlertCircle, // OPRAVA: Použita správná ikona
+  AlertCircle, 
   MessageSquare,
   TrendingUp,
 } from "lucide-react"

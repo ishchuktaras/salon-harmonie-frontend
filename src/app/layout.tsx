@@ -1,31 +1,36 @@
-// src/app/layout.tsx
+// Soubor: src/app/layout.tsx
+// Popis: Hlavní layout aplikace. Zde integrujeme náš AuthProvider.
 
-import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
-import "./globals.css";
-import { cn } from "@/lib/utils";
-import { AuthProvider } from "@/components/auth/auth-provider";
+// Importujeme AuthProvider z jeho nového, odděleného umístění.
+import { AuthProvider } from '@/providers/auth-provider';
+import { Inter } from 'next/font/google';
+import './globals.css';
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const playfairDisplay = Playfair_Display({ subsets: ["latin"], weight: "700", variable: "--font-playfair-display" });
+const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: "Salon Harmonie - Systém Řízení",
-  description: "Interní systém pro správu Salonu Harmonie",
+export const metadata = {
+  title: 'Salón Harmonie',
+  description: 'Administrační systém',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="cs" suppressHydrationWarning>
-      <body className={cn("min-h-screen bg-background font-sans antialiased", inter.variable, playfairDisplay.variable)}>
+    <html lang="cs">
+      <body className={inter.className}>
+        {/*
+          Obalením celé aplikace (reprezentované proměnnou `children`)
+          do AuthProvideru zajistíme, že každá komponenta níže v hierarchii
+          bude mít přístup k autentizačnímu kontextu.
+        */}
         <AuthProvider>
-            {children}
+          {children}
         </AuthProvider>
       </body>
     </html>
   );
 }
+

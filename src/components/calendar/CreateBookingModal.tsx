@@ -1,33 +1,41 @@
+// src/components/calendar/CreateBookingModal.tsx
+
 'use client'
 
-import { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { useEffect, useState } from 'react'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { useApi } from '@/hooks/useApi'
-import { Client, Service, Therapist, CreateReservationDto, User } from '@/lib/api/types'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { format } from 'date-fns'
+import { cs } from 'date-fns/locale'
+import { apiClient } from '@/lib/api/client'
+import { Reservation, Client, Service, User } from '@/lib/api/types'
 
-interface CreateBookingModalProps {
+// Schéma pro validaci formuláře
+const bookingSchema = z.object({
+  clientId: z.string().min(1, 'Klient je povinný.'),
+  serviceId: z.string().min(1, 'Služba je povinná.'),
+  therapistId: z.string().min(1, 'Terapeut je povinný.'),
+  startTime: z.date({ required_error: 'Datum a čas začátku je povinný.' }),
+  notes: z.string().optional(),
+})
+
+type BookingFormData = z.infer<typeof bookingSchema>
+
+// OPRAVA: Rozšíření props o `existingReservation`
+export interface CreateBookingModalProps {
   isOpen: boolean
   onClose: () => void
   onBookingCreated: () => void
-  initialData?: { startTime: Date }
+  initialData?: Partial<BookingFormData>
+  existingReservation?: Reservation
 }
 
 export default function CreateBookingModal({
@@ -35,169 +43,194 @@ export default function CreateBookingModal({
   onClose,
   onBookingCreated,
   initialData,
+  existingReservation,
 }: CreateBookingModalProps) {
   const [clients, setClients] = useState<Client[]>([])
   const [services, setServices] = useState<Service[]>([])
-  // OPRAVA: Typ stavu byl změněn z User[] na Therapist[], aby odpovídal načítaným datům.
-  const [therapists, setTherapists] = useState<Therapist[]>([])
+  const [therapists, setTherapists] = useState<User[]>([])
+  
+  const isEditing = !!existingReservation
 
-  const [selectedClient, setSelectedClient] = useState<string>('')
-  const [selectedService, setSelectedService] = useState<string>('')
-  const [selectedTherapist, setSelectedTherapist] = useState<string>('')
-  const [notes, setNotes] = useState('')
+  const form = useForm<BookingFormData>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      notes: '',
+      ...initialData,
+    },
+  })
 
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const api = useApi()
-
+  // Předvyplnění formuláře při editaci
   useEffect(() => {
-    if (isOpen) {
-      const fetchData = async () => {
-        setLoading(true)
-        try {
-          const [clientsData, servicesData, therapistsData] = await Promise.all([
-            api.apiFetch<Client[]>('/clients'),
-            api.apiFetch<Service[]>('/services'),
-            api.apiFetch<Therapist[]>('/therapists'), // Tento endpoint vrací Therapist[]
-          ])
-          setClients(clientsData)
-          setServices(servicesData)
-          setTherapists(therapistsData)
-        } catch (err) {
-          setError('Nepodařilo se načíst data pro formulář.')
-        } finally {
-          setLoading(false)
-        }
-      }
-      fetchData()
-    }
-  }, [isOpen, api])
-
-  const handleSubmit = async () => {
-    if (!selectedClient || !selectedService || !selectedTherapist || !initialData) {
-      setError('Všechna pole jsou povinná.')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-
-    const service = services.find(s => s.id === parseInt(selectedService));
-    if (!service) {
-      setError("Vybraná služba nebyla nalezena.");
-      setLoading(false);
-      return;
-    }
-
-    const reservationData: CreateReservationDto = {
-      clientId: parseInt(selectedClient),
-      serviceId: parseInt(selectedService),
-      therapistId: parseInt(selectedTherapist),
-      startTime: initialData.startTime.toISOString(),
-      notes: notes,
-    }
-
-    try {
-      await api.apiFetch('/reservations', {
-        method: 'POST',
-        body: JSON.stringify(reservationData),
+    if (isEditing && existingReservation) {
+      form.reset({
+        clientId: String(existingReservation.clientId),
+        serviceId: String(existingReservation.serviceId),
+        therapistId: String(existingReservation.therapistId),
+        startTime: new Date(existingReservation.startTime),
+        notes: existingReservation.notes || '',
       })
-      onBookingCreated()
-      onClose()
-    } catch (err) {
-      setError('Vytvoření rezervace selhalo.')
-    } finally {
-      setLoading(false)
+    } else if (initialData) {
+       form.reset({
+        ...form.getValues(),
+        ...initialData,
+        startTime: initialData.startTime ? new Date(initialData.startTime) : new Date(),
+      })
+    }
+  }, [isEditing, existingReservation, initialData, form])
+
+  // Načtení dat pro select boxy
+  useEffect(() => {
+    if(isOpen) {
+      apiClient.get<Client[]>('/clients').then(setClients);
+      apiClient.get<Service[]>('/services').then(setServices);
+      apiClient.get<User[]>('/users').then(setTherapists); // V budoucnu filtrovat jen terapeuty
+    }
+  }, [isOpen]);
+
+  const onSubmit = async (data: BookingFormData) => {
+    try {
+      const duration = services.find(s => s.id === Number(data.serviceId))?.duration || 60;
+      const endTime = new Date(data.startTime.getTime() + duration * 60000);
+
+      const payload = {
+        ...data,
+        clientId: Number(data.clientId),
+        serviceId: Number(data.serviceId),
+        therapistId: Number(data.therapistId),
+        endTime: endTime.toISOString(),
+        startTime: data.startTime.toISOString(),
+      };
+      
+      if (isEditing) {
+        // Logika pro úpravu
+        await apiClient.patch(`/reservations/${existingReservation.id}`, payload);
+      } else {
+        // Logika pro vytvoření
+        await apiClient.post('/reservations', payload);
+      }
+      onBookingCreated();
+      onClose();
+    } catch (error) {
+      console.error('Failed to save reservation:', error);
+      // Zde můžete přidat zobrazení chyby uživateli
     }
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Vytvořit novou rezervaci</DialogTitle>
+          <DialogTitle>{isEditing ? 'Upravit rezervaci' : 'Vytvořit novou rezervaci'}</DialogTitle>
         </DialogHeader>
-        <div className="py-4 space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Client Select */}
           <div className="space-y-2">
-            <Label htmlFor="client">Klient</Label>
-            <Select value={selectedClient} onValueChange={setSelectedClient}>
-              <SelectTrigger id="client">
-                <SelectValue placeholder="Vyberte klienta" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={String(client.id)}>
-                    {client.firstName} {client.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Service Select */}
-          <div className="space-y-2">
-            <Label htmlFor="service">Služba</Label>
-            <Select value={selectedService} onValueChange={setSelectedService}>
-              <SelectTrigger id="service">
-                <SelectValue placeholder="Vyberte službu" />
-              </SelectTrigger>
-              <SelectContent>
-                {services.map((service) => (
-                  <SelectItem key={service.id} value={String(service.id)}>
-                    {service.name} ({service.duration} min)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Therapist Select */}
-          <div className="space-y-2">
-            <Label htmlFor="therapist">Terapeut</Label>
-            <Select value={selectedTherapist} onValueChange={setSelectedTherapist}>
-              <SelectTrigger id="therapist">
-                <SelectValue placeholder="Vyberte terapeuta" />
-              </SelectTrigger>
-              <SelectContent>
-                {therapists.map((therapist) => (
-                  <SelectItem key={therapist.id} value={String(therapist.id)}>
-                    {therapist.firstName} {therapist.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="notes">Poznámky</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Zde můžete přidat poznámky k rezervaci..."
+            <Label htmlFor="clientId">Klient</Label>
+            <Controller
+              control={form.control}
+              name="clientId"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger><SelectValue placeholder="Vyberte klienta" /></SelectTrigger>
+                  <SelectContent>
+                    {clients.map(client => (
+                      <SelectItem key={client.id} value={String(client.id)}>
+                        {client.firstName} {client.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
+            {form.formState.errors.clientId && <p className="text-sm text-red-500">{form.formState.errors.clientId.message}</p>}
           </div>
 
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Chyba</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Zrušit
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Vytváření...' : 'Vytvořit rezervaci'}
-          </Button>
-        </DialogFooter>
+           {/* Service Select */}
+          <div className="space-y-2">
+            <Label htmlFor="serviceId">Služba</Label>
+             <Controller
+              control={form.control}
+              name="serviceId"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger><SelectValue placeholder="Vyberte službu" /></SelectTrigger>
+                  <SelectContent>
+                    {services.map(service => (
+                      <SelectItem key={service.id} value={String(service.id)}>
+                        {service.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {form.formState.errors.serviceId && <p className="text-sm text-red-500">{form.formState.errors.serviceId.message}</p>}
+          </div>
+
+           {/* Therapist Select */}
+           <div className="space-y-2">
+            <Label htmlFor="therapistId">Terapeut</Label>
+             <Controller
+              control={form.control}
+              name="therapistId"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger><SelectValue placeholder="Vyberte terapeuta" /></SelectTrigger>
+                  <SelectContent>
+                    {therapists.map(therapist => (
+                      <SelectItem key={therapist.id} value={String(therapist.id)}>
+                        {therapist.firstName} {therapist.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {form.formState.errors.therapistId && <p className="text-sm text-red-500">{form.formState.errors.therapistId.message}</p>}
+          </div>
+
+          {/* Start Time */}
+          <div className="space-y-2">
+             <Label htmlFor="startTime">Datum a čas</Label>
+              <Controller
+                control={form.control}
+                name="startTime"
+                render={({ field }) => (
+                   <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {field.value ? format(field.value, 'PPP HH:mm', { locale: cs }) : <span>Vyberte datum</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
+                         {/* Jednoduchý výběr času */}
+                        <div className="p-2 border-t">
+                            <Input 
+                                type="time"
+                                defaultValue={field.value ? format(field.value, 'HH:mm') : ''}
+                                onChange={(e) => {
+                                    const [hours, minutes] = e.target.value.split(':').map(Number);
+                                    const newDate = new Date(field.value);
+                                    newDate.setHours(hours, minutes);
+                                    field.onChange(newDate);
+                                }}
+                            />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                )}
+              />
+               {form.formState.errors.startTime && <p className="text-sm text-red-500">{form.formState.errors.startTime.message}</p>}
+          </div>
+        
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Zrušit</Button>
+            <Button type="submit">{isEditing ? 'Uložit změny' : 'Vytvořit rezervaci'}</Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   )
 }
-

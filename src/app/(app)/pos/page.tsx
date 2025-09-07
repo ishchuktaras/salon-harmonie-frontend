@@ -8,9 +8,7 @@ import { PlusCircle, Trash2 } from 'lucide-react'
 import AddProductModal from '@/components/pos/AddProductModal'
 import { TransactionItem } from '@/lib/api/types'
 
-// OPRAVA: V mock datech byl použit `undefined` místo `null`, což způsobovalo chybu typu.
-// 1. `productId` a `serviceId` musí být `number` nebo `null`.
-// 2. Odebrali jsme vlastnost `type`, která v typu neexistuje.
+
 const mockItems: Omit<TransactionItem, 'transactionId'>[] = [
   { id: 1, name: "Relaxační masáž", price: 1200, quantity: 1, serviceId: 1, productId: null },
   { id: 2, name: "Hydratační krém", price: 850, quantity: 1, serviceId: null, productId: 1 },

@@ -8,7 +8,8 @@ import interactionPlugin from '@fullcalendar/interaction'
 import { EventClickArg, DateSelectArg, EventInput } from '@fullcalendar/core'
 import csLocale from '@fullcalendar/core/locales/cs'
 import CreateBookingModal from '@/components/calendar/CreateBookingModal'
-import { useApi } from '@/hooks/useApi'
+// OPRAVA: Importujeme apiClient místo smazaného useApi
+import { apiClient } from '@/lib/api/client' 
 import { Reservation } from '@/lib/api/types'
 
 type ModalState = {
@@ -20,7 +21,8 @@ type ModalState = {
 export default function CalendarPage() {
   const [events, setEvents] = useState<EventInput[]>([])
   const [loading, setLoading] = useState(true)
-  const api = useApi()
+  
+  // OPRAVA: Odstraněno `const api = useApi()`
 
   const [modalState, setModalState] = useState<ModalState>({
     isOpen: false,
@@ -29,7 +31,8 @@ export default function CalendarPage() {
   const fetchReservations = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await api.apiFetch<Reservation[]>('/reservations')
+      // OPRAVA: Používáme přímo apiClient
+      const data = await apiClient.get<Reservation[]>('/reservations')
       const formattedEvents = data.map((reservation) => ({
         id: String(reservation.id),
         title: `${reservation.client?.firstName} ${reservation.client?.lastName} - ${reservation.service?.name}`,
@@ -43,7 +46,7 @@ export default function CalendarPage() {
     } finally {
       setLoading(false)
     }
-  }, [api])
+  }, []) // Odstraněna závislost na `api`
 
   useEffect(() => {
     fetchReservations()
@@ -68,7 +71,6 @@ export default function CalendarPage() {
   }
 
   const handleBookingCreated = () => {
-    // Po úspěšném vytvoření rezervace znovu načteme data
     fetchReservations()
   }
 
@@ -101,13 +103,15 @@ export default function CalendarPage() {
         )}
       </div>
 
-      <CreateBookingModal
-        isOpen={modalState.isOpen}
-        onClose={handleModalClose}
-        onBookingCreated={handleBookingCreated}
-        initialData={{startTime: modalState.initialDate!}}
-        // existingReservation={modalState.existingReservation}
-      />
+      {modalState.isOpen && (
+        <CreateBookingModal
+          isOpen={modalState.isOpen}
+          onClose={handleModalClose}
+          onBookingCreated={handleBookingCreated}
+          initialData={{startTime: modalState.initialDate!}}
+          existingReservation={modalState.existingReservation}
+        />
+      )}
     </div>
   )
 }

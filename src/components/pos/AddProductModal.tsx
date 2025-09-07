@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useState, useEffect } from 'react'
 import { Product, TransactionItem } from '@/lib/api/types'
-import { useApi } from '@/hooks/useApi'
+import { useApi } from '@/hooks/use-api' // <-- Add this line
 
 interface AddProductModalProps {
   isOpen: boolean
@@ -29,13 +29,12 @@ export default function AddProductModal({
 }: AddProductModalProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const api = useApi()
+  const api = useApi() // This will now be correctly recognized
 
   useEffect(() => {
     if (isOpen) {
       const fetchProducts = async () => {
         try {
-         
           const data = await api.apiFetch<Product[]>('/products')
           setProducts(data)
         } catch (error) {
@@ -57,7 +56,6 @@ export default function AddProductModal({
       name: product.name,
       price: product.price,
       quantity: 1,
-      
     })
     onClose()
   }
@@ -82,10 +80,7 @@ export default function AddProductModal({
                   className="flex items-center justify-between p-2 border rounded-md"
                 >
                   <span>{product.name}</span>
-                  <Button
-                    size="sm"
-                    onClick={() => handleAddProduct(product)}
-                  >
+                  <Button size="sm" onClick={() => handleAddProduct(product)}>
                     Přidat
                   </Button>
                 </div>
@@ -102,4 +97,3 @@ export default function AddProductModal({
     </Dialog>
   )
 }
-

@@ -1,23 +1,35 @@
 // Soubor: frontend/src/lib/api/types.ts
 
-// --- Uživatelé a Terapeuté ---
-// OPRAVA: Sjednoceno s backend odpovědí (obsahuje firstName a lastName)
+// --- Enumy pro lepší typovou bezpečnost ---
+export enum UserRole {
+  Admin = 'ADMIN',
+  Therapist = 'THERAPIST',
+}
+
+export enum ReservationStatus {
+  Pending = 'PENDING',
+  Confirmed = 'CONFIRMED',
+  Cancelled = 'CANCELLED',
+  Completed = 'COMPLETED',
+}
+
+export enum TransactionStatus {
+  Paid = 'PAID',
+  Unpaid = 'UNPAID',
+}
+
+// --- Uživatelé ---
 export interface User {
   id: number
   email: string
-  role: string
+  role: UserRole 
   firstName: string
   lastName: string
+  token: string 
 }
 
-export interface Therapist {
-  id: number
-  firstName: string
-  lastName: string
-  email: string
-}
 
-export type CreateTherapistDto = Omit<User, 'id'>
+export type CreateTherapistDto = Omit<User, 'id' | 'token'>
 export type UpdateTherapistDto = Partial<CreateTherapistDto>
 
 // --- Klienti ---
@@ -63,7 +75,7 @@ export interface Reservation {
   id: number
   startTime: string
   endTime: string
-  status: string
+  status: ReservationStatus // NÁVRH: Použití enumu
   notes: string | null
   client?: Client
   service?: Service
@@ -100,10 +112,9 @@ export interface Transaction {
   id: number
   total: number
   paymentMethod: string
-  status: string
+  status: TransactionStatus // NÁVRH: Použití enumu
   createdAt: string
   items: TransactionItem[]
   client: Client
   pohodaId: string | null
 }
-
