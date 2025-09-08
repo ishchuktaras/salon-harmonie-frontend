@@ -6,38 +6,38 @@ import {
   ShoppingCart,
   Users,
 } from "lucide-react";
-import { Role } from "./roles"; 
+import { UserRole } from "@/lib/api/types"; 
 
 export const navItems = [
   { 
     href: "/dashboard", 
     icon: Home, 
     label: "Dashboard",
-    roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.RECEPCNI]
+    roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.RECEPCNI]
   },
   { 
     href: "/calendar", 
     icon: Calendar, 
     label: "Kalendář",
-    roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.RECEPCNI, Role.TERAPEUT]
+    roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.RECEPCNI, UserRole.TERAPEUT]
   },
   { 
     href: "/clients", 
     icon: Users, 
     label: "Klienti",
-    roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.RECEPCNI, Role.TERAPEUT]
+    roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.RECEPCNI, UserRole.TERAPEUT]
   },
   { 
     href: "/pos", 
     icon: ShoppingCart, 
     label: "Pokladna",
-    roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER, Role.RECEPCNI]
+    roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.RECEPCNI]
   },
   { 
     href: "/reports", 
     icon: BarChart3, 
     label: "Reporty",
-    roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER]
+    roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.MANAGER]
   },
 ];
 
@@ -45,5 +45,5 @@ export const settingsNavItem = {
   href: "/settings",
   icon: Settings,
   label: "Nastavení",
-  roles: [Role.SUPER_ADMIN, Role.ADMIN]
+  roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN]
 };

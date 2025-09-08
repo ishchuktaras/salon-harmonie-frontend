@@ -1,3 +1,5 @@
+// src/components/login-form.tsx
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,7 +48,10 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      await login(values.email, values.password);
+      
+      // Posíláme celý objekt `values` jako jeden argument.
+      await login(values);
+      
       router.push('/dashboard'); 
     } catch (err: any) {
        // Vylepšené chybové hlášky

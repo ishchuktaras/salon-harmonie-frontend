@@ -1,3 +1,5 @@
+// src/components/layout/Header.tsx
+
 "use client";
 
 import Link from "next/link";
@@ -15,17 +17,23 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { HelpCircle, LogOut, User, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Role } from "@/config/roles";
+//  Zde importujeme náš sjednocený enum
+import { UserRole } from "@/lib/api/types";
 
 export default function Header() {
   const { user, logout } = useAuth();
-  const userRole = user?.role as Role;
+  // Nyní user?.role je typu UserRole, což je správně
+  const userRole = user?.role;
 
   const accessibleNavItems = navItems.filter(item => 
     !item.roles || item.roles.length === 0 || (userRole && item.roles.includes(userRole))
   );
   
   const canAccessSettings = userRole && settingsNavItem.roles.includes(userRole);
+
+  //Vytvoříme celá jméno z křestního jména a příjmení
+  const userFullName = user ? `${user.firstName} ${user.lastName}` : "Uživatel";
+  const userInitials = user ? `${user.firstName[0]}${user.lastName[0]}` : <User className="h-5 w-5" />;
 
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6">
@@ -75,13 +83,15 @@ export default function Header() {
             className="relative flex items-center gap-3 h-10 px-3"
           >
             <Avatar className="h-8 w-8">
+              {/* Použití iniciálů */}
               <AvatarFallback className="bg-secondary text-secondary-foreground">
-                {user?.name ? user.name.split(' ').map(n => n[0]).join('') : <User className="h-5 w-5" />}
+                {userInitials}
               </AvatarFallback>
             </Avatar>
             <div className="text-left hidden md:block">
+              {/* Použití celého jména */}
               <p className="text-sm font-medium leading-none">
-                {user?.name || "Uživatel"}
+                {userFullName}
               </p>
               <p className="text-xs text-muted-foreground leading-none">
                 {user?.role || ""}
@@ -92,8 +102,9 @@ export default function Header() {
         <DropdownMenuContent className="w-56" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
+              {/* Použití celého jména */}
               <p className="text-sm font-medium leading-none">
-                {user?.name || "Můj účet"}
+                {userFullName}
               </p>
               <p className="text-xs leading-none text-muted-foreground">
                 {user?.email || ""}

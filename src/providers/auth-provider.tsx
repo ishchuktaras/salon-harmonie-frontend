@@ -1,70 +1,62 @@
 // Soubor: src/providers/auth-provider.tsx
-// Popis: Toto je "motor" autentizace. Komponenta AuthProvider obsahuje veškerou logiku:
-// - Uchovává stav přihlášeného uživatele.
-// - Načítá uživatele z localStorage, aby zůstal přihlášený i po obnovení stránky.
-// - Poskytuje stav a funkce (login, logout) zbytku aplikace.
+// Popis: Finální verze s opravenými importy z knihovny React.
 
 'use client';
 
+// OPRAVA ZDE: Doplnili jsme chybějící `useEffect` a `ReactNode` do importu.
 import React, { useState, useEffect, ReactNode } from 'react';
-import { AuthContext, LoginResponse } from '@/context/auth-context';
+import { AuthContext, LoginResponse, LoginCredentials } from '@/context/auth-context';
 import { User } from '@/lib/api/types';
+import apiClient from '@/lib/api/client';
+import Cookies from 'js-cookie';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Stav pro uchování dat o přihlášeném uživateli.
   const [user, setUser] = useState<User | null>(null);
-  // Stav, který sleduje, zda se ještě načítá počáteční stav z localStorage.
   const [isLoading, setIsLoading] = useState(true);
 
-  // Tento efekt se spustí jen jednou na klientovi po prvním načtení.
   useEffect(() => {
-    try {
-      // Pokusíme se načíst data uživatele z paměti prohlížeče.
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        // Pokud data existují, nastavíme je do stavu.
-        setUser(JSON.parse(storedUser));
+    const initializeUser = async () => {
+      const token = Cookies.get('token');
+      if (token) {
+        try {
+          const response = await apiClient.get<Omit<User, 'token'>>('/auth/me');
+          const userProfile = response.data;
+          const completeUser: User = { ...userProfile, token: token };
+          setUser(completeUser);
+        } catch (error) {
+          console.error("Token je neplatný nebo se nepodařilo načíst data uživatele, odhlašuji.", error);
+          Cookies.remove('token');
+        }
       }
-    } catch (error) {
-      console.error("Nepodařilo se zpracovat uživatele z localStorage", error);
-      localStorage.removeItem('user'); // Pokud jsou data poškozená, odstraníme je.
-    } finally {
-      // Ať už to dopadlo jakkoliv, načítání je dokončeno.
       setIsLoading(false);
-    }
-  }, []); // Prázdné pole závislostí znamená, že se efekt spustí jen jednou.
-
-  // Funkce pro přihlášení uživatele.
-  const login = (loginResponseData: LoginResponse) => {
-    const userToStore: User = {
-      ...loginResponseData.user,
-      token: loginResponseData.token, 
     };
-    
-    // Uložíme data do localStorage pro trvalé přihlášení.
-    localStorage.setItem('user', JSON.stringify(userToStore));
-    // Aktualizujeme stav v aplikaci.
-    setUser(userToStore);
+
+    initializeUser();
+  }, []);
+
+  const login = async (credentials: LoginCredentials) => {
+    try {
+      const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
+      const loginResponseData = response.data;
+      Cookies.set('token', loginResponseData.token, { expires: 7, secure: true });
+      const userToStore: User = { ...loginResponseData.user, token: loginResponseData.token };
+      setUser(userToStore);
+    } catch (error) {
+      console.error("Chyba při přihlašování:", error);
+      throw error;
+    }
   };
 
-  // Funkce pro odhlášení uživatele.
   const logout = () => {
-    // Odstraníme data z localStorage.
-    localStorage.removeItem('user');
-    // Odstraníme data ze stavu aplikace.
+    Cookies.remove('token');
     setUser(null);
   };
 
-  // Vytvoříme objekt 'value', který bude poskytnut všem komponentám uvnitř Provideru.
   const value = { user, login, logout, isLoading };
   
-  // DŮLEŽITÉ: Zabráníme zobrazení obsahu, dokud se nenačte stav přihlášení.
-  // Tímto předcházíme chybám hydratace.
   if (isLoading) {
-    return null; // Zde může být případně načítací animace (spinner).
+    return null; 
   }
 
-  // Komponenta Provider, která "obalí" aplikaci a předá jí hodnoty.
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-

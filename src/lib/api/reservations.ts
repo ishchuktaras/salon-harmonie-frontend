@@ -1,4 +1,4 @@
-import { apiClient } from "./client"
+import  apiClient  from "./client"
 import type { Reservation, CreateReservationDto, UpdateReservationDto } from "./types"
 
 // Objekt, který seskupuje všechny funkce pro práci s rezervacemi.

@@ -1,5 +1,3 @@
-// src/components/calendar/CreateBookingModal.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -31,33 +29,26 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { cs } from "date-fns/locale";
-import { apiClient } from "@/lib/api/client";
+import apiClient from "@/lib/api/client"; // Správný import bez závorek
 import { Reservation, Client, Service, User } from "@/lib/api/types";
 
 export const bookingSchema = z.object({
   clientId: z.string().min(1, "Klient je povinný."),
   serviceId: z.string().min(1, "Služba je povinná."),
   therapistId: z.string().min(1, "Terapeut je povinný."),
-  
-  
-  // Tento přístup je kompatibilní se všemi verzemi Zod.
   startTime: z.any()
     .refine((val) => {
-      // Zkontrolujeme, že hodnota není prázdná a lze ji převést na platné datum.
       if (val === null || val === undefined || val === '') return false;
       const date = new Date(val);
       return !isNaN(date.getTime());
     }, {
-      // Používáme syntaxi `{ message: "..." }`, které rozumí i starší verze Zod.
       message: "Datum a čas začátku je povinný.",
     })
-    .transform((val) => new Date(val)), // Zajistí, že výsledný typ bude vždy Date.
-
+    .transform((val) => new Date(val)),
   notes: z.string().optional(),
 });
 
 export type BookingFormValues = z.infer<typeof bookingSchema>;
-
 
 export interface CreateBookingModalProps {
   isOpen: boolean;
@@ -108,11 +99,12 @@ export default function CreateBookingModal({
     }
   }, [isEditing, existingReservation, initialData, form]);
 
+  // OPRAVA PROVEDENA ZDE
   useEffect(() => {
     if (isOpen) {
-      apiClient.get<Client[]>("/clients").then(setClients);
-      apiClient.get<Service[]>("/services").then(setServices);
-      apiClient.get<User[]>("/users").then(setTherapists);
+      apiClient.get<Client[]>("/clients").then(response => setClients(response.data));
+      apiClient.get<Service[]>("/services").then(response => setServices(response.data));
+      apiClient.get<User[]>("/users").then(response => setTherapists(response.data));
     }
   }, [isOpen]);
 
@@ -146,7 +138,6 @@ export default function CreateBookingModal({
     }
   };
 
-  // ... zbytek JSX komponenty zůstává stejný
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -156,7 +147,6 @@ export default function CreateBookingModal({
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Client Select */}
           <div className="space-y-2">
             <Label htmlFor="clientId">Klient</Label>
             <Controller
@@ -187,8 +177,6 @@ export default function CreateBookingModal({
               </p>
             )}
           </div>
-
-          {/* Service Select */}
           <div className="space-y-2">
             <Label htmlFor="serviceId">Služba</Label>
             <Controller
@@ -219,8 +207,6 @@ export default function CreateBookingModal({
               </p>
             )}
           </div>
-
-          {/* Therapist Select */}
           <div className="space-y-2">
             <Label htmlFor="therapistId">Terapeut</Label>
             <Controller
@@ -254,8 +240,6 @@ export default function CreateBookingModal({
               </p>
             )}
           </div>
-
-          {/* Start Time */}
           <div className="space-y-2">
             <Label htmlFor="startTime">Datum a čas</Label>
             <Controller
@@ -310,7 +294,6 @@ export default function CreateBookingModal({
               </p>
             )}
           </div>
-
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
               Zrušit
@@ -346,3 +329,4 @@ function CalendarIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+

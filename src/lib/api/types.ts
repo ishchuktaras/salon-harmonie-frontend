@@ -2,8 +2,15 @@
 
 // --- Enumy pro lepší typovou bezpečnost ---
 export enum UserRole {
-  Admin = 'ADMIN',
-  Therapist = 'THERAPIST',
+SUPER_ADMIN = 'SUPER_ADMIN',
+  ADMIN = 'ADMIN',
+  TERAPEUT = 'TERAPEUT',
+  RECEPCNI = 'RECEPCNI',
+  ASISTENT = 'ASISTENT',
+  KOORDINATOR = 'KOORDINATOR',
+  MASER = 'MASER',
+  MANAGER = 'MANAGER',
+  ESHOP_SPRAVCE = 'ESHOP_SPRAVCE',
 }
 
 export enum ReservationStatus {

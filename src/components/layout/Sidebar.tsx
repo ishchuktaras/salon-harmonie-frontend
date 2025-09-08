@@ -1,3 +1,5 @@
+// src/components/layout/Sidebar.tsx
+
 "use client"
 
 import Link from "next/link"
@@ -7,12 +9,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/use-auth"
 import { navItems, settingsNavItem } from "@/config/nav"
-import { Role } from "@/config/roles"
+import { UserRole } from "@/lib/api/types"
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const userRole = user?.role as Role;
+  const userRole = user?.role as UserRole;
 
   const accessibleNavItems = navItems.filter(item => 
     !item.roles || item.roles.length === 0 || (userRole && item.roles.includes(userRole))
