@@ -1,41 +1,70 @@
 // src/components/calendar/CreateBookingModal.tsx
 
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useForm, Controller } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { format } from 'date-fns'
-import { cs } from 'date-fns/locale'
-import { apiClient } from '@/lib/api/client'
-import { Reservation, Client, Service, User } from '@/lib/api/types'
+import { useEffect, useState } from "react";
+import { useForm, Controller, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cs } from "date-fns/locale";
+import { apiClient } from "@/lib/api/client";
+import { Reservation, Client, Service, User } from "@/lib/api/types";
 
-// Schéma pro validaci formuláře
-const bookingSchema = z.object({
-  clientId: z.string().min(1, 'Klient je povinný.'),
-  serviceId: z.string().min(1, 'Služba je povinná.'),
-  therapistId: z.string().min(1, 'Terapeut je povinný.'),
-  startTime: z.date({ required_error: 'Datum a čas začátku je povinný.' }),
+export const bookingSchema = z.object({
+  clientId: z.string().min(1, "Klient je povinný."),
+  serviceId: z.string().min(1, "Služba je povinná."),
+  therapistId: z.string().min(1, "Terapeut je povinný."),
+  
+  
+  // Tento přístup je kompatibilní se všemi verzemi Zod.
+  startTime: z.any()
+    .refine((val) => {
+      // Zkontrolujeme, že hodnota není prázdná a lze ji převést na platné datum.
+      if (val === null || val === undefined || val === '') return false;
+      const date = new Date(val);
+      return !isNaN(date.getTime());
+    }, {
+      // Používáme syntaxi `{ message: "..." }`, které rozumí i starší verze Zod.
+      message: "Datum a čas začátku je povinný.",
+    })
+    .transform((val) => new Date(val)), // Zajistí, že výsledný typ bude vždy Date.
+
   notes: z.string().optional(),
-})
+});
 
-type BookingFormData = z.infer<typeof bookingSchema>
+export type BookingFormValues = z.infer<typeof bookingSchema>;
 
-// OPRAVA: Rozšíření props o `existingReservation`
+
 export interface CreateBookingModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onBookingCreated: () => void
-  initialData?: Partial<BookingFormData>
-  existingReservation?: Reservation
+  isOpen: boolean;
+  onClose: () => void;
+  onBookingCreated: () => void;
+  initialData?: Partial<BookingFormValues>;
+  existingReservation?: Reservation;
 }
 
 export default function CreateBookingModal({
@@ -45,51 +74,52 @@ export default function CreateBookingModal({
   initialData,
   existingReservation,
 }: CreateBookingModalProps) {
-  const [clients, setClients] = useState<Client[]>([])
-  const [services, setServices] = useState<Service[]>([])
-  const [therapists, setTherapists] = useState<User[]>([])
-  
-  const isEditing = !!existingReservation
+  const [clients, setClients] = useState<Client[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [therapists, setTherapists] = useState<User[]>([]);
 
-  const form = useForm<BookingFormData>({
+  const isEditing = !!existingReservation;
+
+  const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      notes: '',
+      notes: "",
       ...initialData,
     },
-  })
+  });
 
-  // Předvyplnění formuláře při editaci
   useEffect(() => {
     if (isEditing && existingReservation) {
       form.reset({
-        clientId: String(existingReservation.clientId),
-        serviceId: String(existingReservation.serviceId),
-        therapistId: String(existingReservation.therapistId),
+        clientId: String(existingReservation.client?.id ?? ""),
+        serviceId: String(existingReservation.service?.id ?? ""),
+        therapistId: String(existingReservation.therapist?.id ?? ""),
         startTime: new Date(existingReservation.startTime),
-        notes: existingReservation.notes || '',
-      })
+        notes: existingReservation.notes || "",
+      });
     } else if (initialData) {
-       form.reset({
+      form.reset({
         ...form.getValues(),
         ...initialData,
-        startTime: initialData.startTime ? new Date(initialData.startTime) : new Date(),
-      })
+        startTime: initialData.startTime
+          ? new Date(initialData.startTime)
+          : new Date(),
+      });
     }
-  }, [isEditing, existingReservation, initialData, form])
+  }, [isEditing, existingReservation, initialData, form]);
 
-  // Načtení dat pro select boxy
   useEffect(() => {
-    if(isOpen) {
-      apiClient.get<Client[]>('/clients').then(setClients);
-      apiClient.get<Service[]>('/services').then(setServices);
-      apiClient.get<User[]>('/users').then(setTherapists); // V budoucnu filtrovat jen terapeuty
+    if (isOpen) {
+      apiClient.get<Client[]>("/clients").then(setClients);
+      apiClient.get<Service[]>("/services").then(setServices);
+      apiClient.get<User[]>("/users").then(setTherapists);
     }
   }, [isOpen]);
 
-  const onSubmit = async (data: BookingFormData) => {
+  const onSubmit: SubmitHandler<BookingFormValues> = async (data) => {
     try {
-      const duration = services.find(s => s.id === Number(data.serviceId))?.duration || 60;
+      const duration =
+        services.find((s) => s.id === Number(data.serviceId))?.duration || 60;
       const endTime = new Date(data.startTime.getTime() + duration * 60000);
 
       const payload = {
@@ -100,27 +130,30 @@ export default function CreateBookingModal({
         endTime: endTime.toISOString(),
         startTime: data.startTime.toISOString(),
       };
-      
-      if (isEditing) {
-        // Logika pro úpravu
-        await apiClient.patch(`/reservations/${existingReservation.id}`, payload);
+
+      if (isEditing && existingReservation) {
+        await apiClient.patch(
+          `/reservations/${existingReservation.id}`,
+          payload
+        );
       } else {
-        // Logika pro vytvoření
-        await apiClient.post('/reservations', payload);
+        await apiClient.post("/reservations", payload);
       }
       onBookingCreated();
       onClose();
     } catch (error) {
-      console.error('Failed to save reservation:', error);
-      // Zde můžete přidat zobrazení chyby uživateli
+      console.error("Failed to save reservation:", error);
     }
-  }
+  };
 
+  // ... zbytek JSX komponenty zůstává stejný
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Upravit rezervaci' : 'Vytvořit novou rezervaci'}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? "Upravit rezervaci" : "Vytvořit novou rezervaci"}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Client Select */}
@@ -130,10 +163,16 @@ export default function CreateBookingModal({
               control={form.control}
               name="clientId"
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger><SelectValue placeholder="Vyberte klienta" /></SelectTrigger>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value ?? ""}
+                  defaultValue={field.value ?? ""}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte klienta" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {clients.map(client => (
+                    {clients.map((client) => (
                       <SelectItem key={client.id} value={String(client.id)}>
                         {client.firstName} {client.lastName}
                       </SelectItem>
@@ -142,20 +181,30 @@ export default function CreateBookingModal({
                 </Select>
               )}
             />
-            {form.formState.errors.clientId && <p className="text-sm text-red-500">{form.formState.errors.clientId.message}</p>}
+            {form.formState.errors.clientId && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.clientId.message}
+              </p>
+            )}
           </div>
 
-           {/* Service Select */}
+          {/* Service Select */}
           <div className="space-y-2">
             <Label htmlFor="serviceId">Služba</Label>
-             <Controller
+            <Controller
               control={form.control}
               name="serviceId"
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger><SelectValue placeholder="Vyberte službu" /></SelectTrigger>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value ?? ""}
+                  defaultValue={field.value ?? ""}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte službu" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {services.map(service => (
+                    {services.map((service) => (
                       <SelectItem key={service.id} value={String(service.id)}>
                         {service.name}
                       </SelectItem>
@@ -164,21 +213,34 @@ export default function CreateBookingModal({
                 </Select>
               )}
             />
-            {form.formState.errors.serviceId && <p className="text-sm text-red-500">{form.formState.errors.serviceId.message}</p>}
+            {form.formState.errors.serviceId && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.serviceId.message}
+              </p>
+            )}
           </div>
 
-           {/* Therapist Select */}
-           <div className="space-y-2">
+          {/* Therapist Select */}
+          <div className="space-y-2">
             <Label htmlFor="therapistId">Terapeut</Label>
-             <Controller
+            <Controller
               control={form.control}
               name="therapistId"
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger><SelectValue placeholder="Vyberte terapeuta" /></SelectTrigger>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value ?? ""}
+                  defaultValue={field.value ?? ""}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vyberte terapeuta" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {therapists.map(therapist => (
-                      <SelectItem key={therapist.id} value={String(therapist.id)}>
+                    {therapists.map((therapist) => (
+                      <SelectItem
+                        key={therapist.id}
+                        value={String(therapist.id)}
+                      >
                         {therapist.firstName} {therapist.lastName}
                       </SelectItem>
                     ))}
@@ -186,51 +248,101 @@ export default function CreateBookingModal({
                 </Select>
               )}
             />
-            {form.formState.errors.therapistId && <p className="text-sm text-red-500">{form.formState.errors.therapistId.message}</p>}
+            {form.formState.errors.therapistId && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.therapistId.message}
+              </p>
+            )}
           </div>
 
           {/* Start Time */}
           <div className="space-y-2">
-             <Label htmlFor="startTime">Datum a čas</Label>
-              <Controller
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                   <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start text-left font-normal">
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {field.value ? format(field.value, 'PPP HH:mm', { locale: cs }) : <span>Vyberte datum</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
-                         {/* Jednoduchý výběr času */}
-                        <div className="p-2 border-t">
-                            <Input 
-                                type="time"
-                                defaultValue={field.value ? format(field.value, 'HH:mm') : ''}
-                                onChange={(e) => {
-                                    const [hours, minutes] = e.target.value.split(':').map(Number);
-                                    const newDate = new Date(field.value);
-                                    newDate.setHours(hours, minutes);
-                                    field.onChange(newDate);
-                                }}
-                            />
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                )}
-              />
-               {form.formState.errors.startTime && <p className="text-sm text-red-500">{form.formState.errors.startTime.message}</p>}
+            <Label htmlFor="startTime">Datum a čas</Label>
+            <Controller
+              control={form.control}
+              name="startTime"
+              render={({ field }) => (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {field.value ? (
+                        format(field.value, "PPP HH:mm", { locale: cs })
+                      ) : (
+                        <span>Vyberte datum</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      initialFocus
+                    />
+                    <div className="p-2 border-t">
+                      <Input
+                        type="time"
+                        defaultValue={
+                          field.value ? format(field.value, "HH:mm") : ""
+                        }
+                        onChange={(e) => {
+                          if (!field.value) return;
+                          const [hours, minutes] = e.target.value
+                            .split(":")
+                            .map(Number);
+                          const newDate = new Date(field.value);
+                          newDate.setHours(hours, minutes);
+                          field.onChange(newDate);
+                        }}
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            />
+            {form.formState.errors.startTime && (
+              <p className="text-sm text-red-500">
+                {form.formState.errors.startTime.message}
+              </p>
+            )}
           </div>
-        
+
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Zrušit</Button>
-            <Button type="submit">{isEditing ? 'Uložit změny' : 'Vytvořit rezervaci'}</Button>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Zrušit
+            </Button>
+            <Button type="submit">
+              {isEditing ? "Uložit změny" : "Vytvořit rezervaci"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
+}
+
+function CalendarIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+      <line x1="16" x2="16" y1="2" y2="6" />
+      <line x1="8" x2="8" y1="2" y2="6" />
+      <line x1="3" x2="21" y1="10" y2="10" />
+    </svg>
+  );
 }
