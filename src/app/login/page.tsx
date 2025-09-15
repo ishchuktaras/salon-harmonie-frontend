@@ -1,123 +1,40 @@
-'use client';
+import { Sparkles } from "lucide-react";
+import { LoginForm } from "@/components/login-form";
+import Link from "next/link";
+import Image from "next/image";
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/hooks/use-auth'; 
-import { useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-
-const formSchema = z.object({
-  email: z.string().email({
-    message: 'Prosím zadejte platnou e-mailovou adresu.',
-  }),
-  password: z.string().min(1, {
-    message: 'Prosím zadejte heslo.',
-  }),
-});
-
-export function LoginForm() {
-  const { login } = useAuth();
-  const router = useRouter(); 
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setError(null);
-    setLoading(true);
-    try {
-      await login(values);
-      router.push('/dashboard'); 
-    } catch (err: any) {
-      if (err.response && err.response.status === 401) {
-        setError('Neplatný e-mail nebo heslo. Zkuste to prosím znovu.');
-      } else {
-        setError('Došlo k neznámé chybě. Zkuste to prosím znovu.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
+export default function LoginPage() {
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Vítejte zpět</CardTitle>
-        <CardDescription>
-          Přihlaste se do svého účtu v systému Salon Harmonie.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Chyba přihlášení</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>E-mail</FormLabel>
-                  <FormControl>
-                    <Input placeholder="jmeno@email.cz" {...field} disabled={loading} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Heslo</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} disabled={loading} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? 'Přihlašuji...' : 'Přihlásit se'}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2">
+      <div className="flex items-center justify-center py-12">
+        <div className="mx-auto grid w-[380px] gap-6">
+          <div className="grid gap-4 text-center">
+            <Link href="/" className="flex items-center justify-center gap-2 self-center font-semibold text-xl">
+                <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-lg">
+                    <Sparkles className="size-5" />
+                </div>
+                <span>Salon Harmonie</span>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold">Přihlášení</h1>
+              <p className="text-balance text-muted-foreground">
+                Vítejte zpět! Zadejte své údaje pro vstup do systému.
+              </p>
+            </div>
+          </div>
+          <LoginForm />
+        </div>
+      </div>
+      <div className="hidden bg-muted lg:block">
+        <Image
+          src="https://images.unsplash.com/photo-1552693673-1bf95829b51f?q=80&w=2070&auto=format&fit=crop"
+          alt="Obrázek interiéru wellness salonu"
+          width="1920"
+          height="1080"
+          className="h-full w-full object-cover dark:brightness-[0.3]"
+        />
+      </div>
+    </div>
   );
 }
 

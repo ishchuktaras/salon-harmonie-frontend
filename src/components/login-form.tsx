@@ -15,9 +15,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/use-auth'; 
@@ -67,14 +64,8 @@ export function LoginForm() {
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Vítejte zpět</CardTitle>
-        <CardDescription>
-          Přihlaste se do svého účtu v systému Salon Harmonie.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Card className="border-none shadow-none bg-transparent">
+      <CardContent className="p-0">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {error && (
