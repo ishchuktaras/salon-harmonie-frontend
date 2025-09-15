@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-// OPRAVA: Nahradili jsme 'CalendarCheck' za 'CalendarCheck2' a smazali nepoužívanou 'BarChart2'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, Users, Calendar, Sparkles } from 'lucide-react';
 import apiClient from '@/lib/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -139,4 +138,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-
