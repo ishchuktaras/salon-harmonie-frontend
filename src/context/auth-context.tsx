@@ -1,32 +1,32 @@
-// Soubor: src/context/auth-context.tsx
-
-"use client";
-import { createContext } from "react";
-import { User, UserRole } from "@/lib/api/types";
+"use client"
+import { createContext } from "react"
+import type { User, UserRole } from "@/lib/api/types"
 
 export interface LoginCredentials {
-  email: string;
-  password: string;
+  email: string
+  password: string
 }
 
 export interface LoginResponse {
-  access_token: string;
+  access_token: string
   user: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: UserRole;
-  };
+    id: number
+    firstName: string
+    lastName: string
+    email: string
+    role: UserRole
+  }
 }
+
+export type OAuthProvider = "google" | "apple"
 
 export interface AuthContextType {
-  user: User | null;
-  login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
-  isLoading: boolean;
+  user: User | null
+  login: (credentials: LoginCredentials) => Promise<void>
+  loginWithOAuth: (provider: OAuthProvider) => Promise<void>
+  logout: () => void
+  isLoading: boolean
+  getRoleBasedRedirectPath: (role: UserRole) => string
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined
-);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined)
