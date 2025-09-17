@@ -119,7 +119,7 @@ export interface Transaction {
   id: number
   total: number
   paymentMethod: string
-  status: TransactionStatus // NÁVRH: Použití enumu
+  status: TransactionStatus 
   createdAt: string
   items: TransactionItem[]
   client: Client

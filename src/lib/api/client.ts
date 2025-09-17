@@ -6,8 +6,7 @@ const getApiBaseUrl = () => {
   if (process.env.NODE_ENV === "development") {
     return "/api"
   }
-  // In production, use the full API URL
-  return process.env.NEXT_PUBLIC_API_URL || "https://salon-harmonie-backend.onrender.com"
+  return process.env.NEXT_PUBLIC_API_URL || "https://salon-harmonie-backend.onrender.com/api"
 }
 
 // Vytvoříme centrální instanci axiosu
@@ -35,7 +34,7 @@ apiClient.interceptors.request.use(
     }
 
     if (process.env.NODE_ENV === "development") {
-      console.log(` API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`)
+      console.log(`[v0] API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`)
     }
 
     // 3. Vrátíme upravenou konfiguraci a požadavek může pokračovat.
@@ -51,17 +50,17 @@ apiClient.interceptors.response.use(
   (response) => {
     if (process.env.NODE_ENV === "development") {
       console.log(
-        ` API Success: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`,
+        `[v0] API Success: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`,
       )
     }
     return response
   },
   (error) => {
-    console.log(` API Error:`, error.message, error.response?.status)
+    console.log(`[v0] API Error:`, error.message, error.response?.status)
 
     // Handle network errors (CORS, connection issues)
     if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
-      console.error(" Network error - možná CORS problém nebo server není dostupný")
+      console.error("[v0] Network error - možná CORS problém nebo server není dostupný")
 
       const isDevelopment = process.env.NODE_ENV === "development"
       const errorMessage = isDevelopment
@@ -73,7 +72,7 @@ apiClient.interceptors.response.use(
 
     // Handle 401 errors (unauthorized)
     if (error.response?.status === 401) {
-      console.log("[ 401 Unauthorized - clearing token and redirecting")
+      console.log("[v0] 401 Unauthorized - clearing token and redirecting")
       // Clear invalid token
       Cookies.remove("token")
 
