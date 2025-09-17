@@ -1,7 +1,7 @@
 "use client"
 
 import { Sparkles } from "lucide-react"
-import { LoginForm } from "@/components/login-form"
+import { RegisterForm } from "@/components/register-form"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const { loginWithOAuth } = useAuth()
   const router = useRouter()
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
@@ -20,11 +20,11 @@ export default function LoginPage() {
     setIsGoogleLoading(true)
     try {
       await loginWithOAuth("google")
-      toast.success("Úspěšně přihlášeno přes Google")
+      toast.success("Úspěšně registrováno přes Google")
       router.push("/dashboard")
     } catch (error: any) {
-      console.error("Google login error:", error)
-      toast.error(error.message || "Chyba při přihlašování přes Google")
+      console.error("Google registration error:", error)
+      toast.error(error.message || "Chyba při registraci přes Google")
     } finally {
       setIsGoogleLoading(false)
     }
@@ -34,11 +34,11 @@ export default function LoginPage() {
     setIsAppleLoading(true)
     try {
       await loginWithOAuth("apple")
-      toast.success("Úspěšně přihlášeno přes Apple")
+      toast.success("Úspěšně registrováno přes Apple")
       router.push("/dashboard")
     } catch (error: any) {
-      console.error("Apple login error:", error)
-      toast.error(error.message || "Chyba při přihlašování přes Apple")
+      console.error("Apple registration error:", error)
+      toast.error(error.message || "Chyba při registraci přes Apple")
     } finally {
       setIsAppleLoading(false)
     }
@@ -58,14 +58,14 @@ export default function LoginPage() {
             <span className="font-serif">Salon Harmonie</span>
           </Link>
           <div>
-            <CardTitle className="text-2xl font-serif font-bold text-[#3C3633] mb-2">Vítejte zpět</CardTitle>
+            <CardTitle className="text-2xl font-serif font-bold text-[#3C3633] mb-2">Vytvořte si účet</CardTitle>
             <CardDescription className="text-[#6A5F5A] font-medium">
-              Přihlaste se do vašeho účtu a pokračujte v péči o vaši krásu
+              Zaregistrujte se a začněte využívat naše služby
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Social Login Buttons */}
+          {/* Social Registration Buttons */}
           <div className="space-y-3">
             <Button
               variant="outline"
@@ -80,7 +80,7 @@ export default function LoginPage() {
                   <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
                 </svg>
               )}
-              Přihlásit se přes Apple
+              Registrovat se přes Apple
             </Button>
             <Button
               variant="outline"
@@ -110,7 +110,7 @@ export default function LoginPage() {
                   />
                 </svg>
               )}
-              Přihlásit se přes Google
+              Registrovat se přes Google
             </Button>
           </div>
 
@@ -120,21 +120,19 @@ export default function LoginPage() {
               <span className="w-full border-t border-[#A4907C]" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-[#E1D7C6] px-2 text-[#6A5F5A] font-medium">Nebo pokračujte s</span>
+              <span className="bg-[#E1D7C6] px-2 text-[#6A5F5A] font-medium">Nebo se zaregistrujte s</span>
             </div>
           </div>
 
-          {/* Login Form */}
-          <LoginForm />
+          <RegisterForm />
 
-          {/* Sign up link */}
           <div className="text-center text-sm text-[#6A5F5A]">
-            Nemáte účet?{" "}
+            Už máte účet?{" "}
             <Link
-              href="/register"
+              href="/login"
               className="text-[#3C3633] hover:text-[#6A5F5A] font-medium hover:underline transition-colors"
             >
-              Zaregistrujte se
+              Přihlaste se
             </Link>
           </div>
         </CardContent>

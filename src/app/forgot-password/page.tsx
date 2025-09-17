@@ -28,8 +28,10 @@ export default function ForgotPasswordPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Forgot Password Form */}
           <ForgotPasswordForm />
 
+          {/* Back to login link */}
           <div className="text-center">
             <Link href="/login">
               <Button variant="ghost" className="text-[#6A5F5A] hover:text-[#3C3633] hover:bg-[#A4907C]/20">

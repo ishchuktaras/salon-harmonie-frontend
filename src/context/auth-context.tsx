@@ -7,6 +7,14 @@ export interface LoginCredentials {
   password: string
 }
 
+export interface RegisterCredentials {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  role: UserRole
+}
+
 export interface LoginResponse {
   access_token: string
   user: {
@@ -23,6 +31,7 @@ export type OAuthProvider = "google" | "apple"
 export interface AuthContextType {
   user: User | null
   login: (credentials: LoginCredentials) => Promise<void>
+  register: (credentials: RegisterCredentials) => Promise<void>
   loginWithOAuth: (provider: OAuthProvider) => Promise<void>
   logout: () => void
   isLoading: boolean
