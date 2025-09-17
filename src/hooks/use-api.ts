@@ -1,16 +1,17 @@
+"use client"
+
 // src/lib/api/use-api.ts
 
-import { useAuth } from './use-auth';
-import { useCallback } from 'react';
+import { useAuth } from "./use-auth"
+import { useCallback } from "react"
 
-// You would define your API configuration here
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
 
 export function useApi() {
-  const { user } = useAuth() // Assuming you need auth state
+  const { user } = useAuth() 
 
   const apiFetch = useCallback(
-    async (endpoint: string, options: RequestInit = {}): Promise<any> => {
+    async <T = any>(endpoint: string, options: RequestInit = {}): Promise<T> => {
       const headers = new Headers(options.headers || {})
       if (user?.token) {
         headers.set("Authorization", `Bearer ${user.token}`)
@@ -32,7 +33,7 @@ export function useApi() {
 
       // Handle cases with no response body (e.g., 204 No Content)
       if (response.status === 204) {
-        return null
+        return null as T
       }
 
       return response.json()

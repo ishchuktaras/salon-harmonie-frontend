@@ -1,45 +1,176 @@
 "use client"
 
-import { Sparkles, ArrowLeft } from "lucide-react"
-import { ForgotPasswordForm } from "@/components/forgot-password-form"
-import Link from "next/link"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect, type ReactNode } from "react"
+import {
+  AuthContext,
+  type LoginResponse,
+  type LoginCredentials,
+  type RegisterCredentials,
+  type OAuthProvider,
+} from "@/context/auth-context"
+import { type User, UserRole } from "@/lib/api/types"
+import apiClient from "@/lib/api/client"
+import Cookies from "js-cookie"
 
-export default function ForgotPasswordPage() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#3C3633] via-[#6A5F5A] to-[#A4907C] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-[#E1D7C6]/95 border-[#A4907C] backdrop-blur-sm shadow-2xl">
-        <CardHeader className="space-y-4 text-center">
-          <Link
-            href="/"
-            className="flex items-center justify-center gap-2 self-center font-semibold text-xl text-[#3C3633]"
-          >
-            <div className="bg-[#6A5F5A] text-[#E1D7C6] flex size-8 items-center justify-center rounded-lg">
-              <Sparkles className="size-5" />
-            </div>
-            <span className="font-serif">Salon Harmonie</span>
-          </Link>
-          <div>
-            <CardTitle className="text-2xl font-serif font-bold text-[#3C3633] mb-2">Zapomenuté heslo</CardTitle>
-            <CardDescription className="text-[#6A5F5A] font-medium">
-              Zadejte svou emailovou adresu a pošleme vám odkaz pro obnovení hesla
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <ForgotPasswordForm />
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-          <div className="text-center">
-            <Link href="/login">
-              <Button variant="ghost" className="text-[#6A5F5A] hover:text-[#3C3633] hover:bg-[#A4907C]/20">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Zpět na přihlášení
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
+  useEffect(() => {
+    const initializeUser = async () => {
+      const token = Cookies.get("token")
+      if (token) {
+        try {
+          const userProfile = await apiClient.get<Omit<User, "token">>("/auth/profile")
+          const completeUser: User = { ...userProfile.data, token: token }
+          setUser(completeUser)
+        } catch (error) {
+          console.error("Token je neplatný nebo se nepodařilo načíst data uživatele, odhlašuji.", error)
+          Cookies.remove("token")
+        }
+      }
+      setIsLoading(false)
+    }
+
+    initializeUser()
+  }, [])
+
+  const login = async (credentials: LoginCredentials) => {
+    try {
+      const response = await apiClient.post<LoginResponse>("/auth/login", credentials)
+      const loginResponseData = response.data
+
+      const cookieOptions = {
+        expires: 7,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? ("strict" as const) : ("lax" as const),
+      }
+
+      Cookies.set("token", loginResponseData.access_token, cookieOptions)
+
+      const userToStore: User = {
+        ...loginResponseData.user,
+        token: loginResponseData.access_token,
+      }
+      setUser(userToStore)
+    } catch (error) {
+      console.error("Chyba při přihlašování:", error)
+      throw error
+    }
+  }
+
+  const register = async (credentials: RegisterCredentials) => {
+    try {
+      const response = await apiClient.post<LoginResponse>("/auth/register", credentials)
+      const registerResponseData = response.data
+
+      const cookieOptions = {
+        expires: 7,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? ("strict" as const) : ("lax" as const),
+      }
+
+      Cookies.set("token", registerResponseData.access_token, cookieOptions)
+
+      const userToStore: User = {
+        ...registerResponseData.user,
+        token: registerResponseData.access_token,
+      }
+      setUser(userToStore)
+    } catch (error) {
+      console.error("Chyba při registraci:", error)
+      throw error
+    }
+  }
+
+  const loginWithOAuth = async (provider: OAuthProvider) => {
+    try {
+      const isDevelopment = process.env.NODE_ENV === "development"
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://salon-harmonie-backend.onrender.com"
+
+      const providerName = provider === "google" ? "Google" : "Apple"
+
+      if (isDevelopment) {
+        console.log(`[v0] OAuth ${provider} requested in development mode`)
+        throw new Error(
+          `${providerName} přihlášení není momentálně dostupné. Backend neobsahuje potřebné OAuth endpointy. Použijte prosím email a heslo pro přihlášení.`,
+        )
+      }
+
+      const authUrl = `${baseUrl}/auth/${provider}`
+
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+        const response = await fetch(authUrl, {
+          method: "HEAD",
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error(`OAuth endpoint returned ${response.status}`)
+        }
+
+        console.log(`[v0] Redirecting to OAuth: ${authUrl}`)
+        window.location.href = authUrl
+      } catch (error) {
+        console.log(`[v0] OAuth endpoint not available for ${provider}`)
+        throw new Error(
+          `${providerName} přihlášení není momentálně dostupné. Zkuste to prosím později nebo použijte email a heslo.`,
+        )
+      }
+    } catch (error) {
+      console.error(`Chyba při ${provider} přihlašování:`, error)
+      throw error
+    }
+  }
+
+  const getRoleBasedRedirectPath = (role: UserRole): string => {
+    switch (role) {
+      case UserRole.SUPER_ADMIN:
+      case UserRole.ADMIN:
+        return "/admin/dashboard"
+      case UserRole.MANAGER:
+        return "/manager/dashboard"
+      case UserRole.TERAPEUT:
+      case UserRole.MASER:
+        return "/therapist/dashboard"
+      case UserRole.RECEPCNI:
+        return "/reception/dashboard"
+      case UserRole.KOORDINATOR:
+        return "/coordinator/dashboard"
+      case UserRole.ASISTENT:
+        return "/assistant/dashboard"
+      case UserRole.ESHOP_SPRAVCE:
+        return "/eshop/dashboard"
+      default:
+        return "/dashboard"
+    }
+  }
+
+  const logout = () => {
+    Cookies.remove("token")
+    setUser(null)
+  }
+
+  const value = {
+    user,
+    login,
+    register, // Added register to context value
+    loginWithOAuth,
+    logout,
+    isLoading,
+    getRoleBasedRedirectPath,
+  }
+
+  if (isLoading) {
+    return null
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
+
+export { AuthProvider as default }
