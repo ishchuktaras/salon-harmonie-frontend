@@ -7,7 +7,6 @@ import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useAuth } from "@/hooks/use-auth"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -21,9 +20,6 @@ const registerSchema = z
     email: z.string().email("Neplatná emailová adresa"),
     password: z.string().min(8, "Heslo musí mít alespoň 8 znaků"),
     confirmPassword: z.string(),
-    role: z.nativeEnum(UserRole, {
-      message: "Vyberte prosím roli",
-    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Hesla se neshodují",
@@ -43,7 +39,6 @@ export function RegisterForm() {
     register: registerField,
     handleSubmit,
     formState: { errors },
-    setValue,
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   })
@@ -56,7 +51,7 @@ export function RegisterForm() {
         lastName: data.lastName,
         email: data.email,
         password: data.password,
-        role: data.role,
+        role: UserRole.CLIENT,
       })
       toast.success("Registrace byla úspěšná!")
       router.push("/dashboard")
@@ -111,25 +106,6 @@ export function RegisterForm() {
           {...registerField("email")}
         />
         {errors.email && <p className="text-sm text-red-600">{errors.email.message}</p>}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="role" className="text-[#3C3633] font-medium">
-          Role
-        </Label>
-        <Select onValueChange={(value) => setValue("role", value as UserRole)}>
-          <SelectTrigger className="bg-white/80 border-[#A4907C] text-[#3C3633] focus:border-[#6A5F5A] focus:ring-[#6A5F5A]">
-            <SelectValue placeholder="Vyberte svou roli" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={UserRole.ADMIN}>Administrátor</SelectItem>
-            <SelectItem value={UserRole.TERAPEUT}>Terapeut</SelectItem>
-            <SelectItem value={UserRole.RECEPCNI}>Recepční</SelectItem>
-            <SelectItem value={UserRole.MASER}>Masér</SelectItem>
-            <SelectItem value={UserRole.MANAGER}>Manažer</SelectItem>
-          </SelectContent>
-        </Select>
-        {errors.role && <p className="text-sm text-red-600">{errors.role.message}</p>}
       </div>
 
       <div className="space-y-2">
@@ -197,7 +173,7 @@ export function RegisterForm() {
             Registruji...
           </div>
         ) : (
-          "Zaregistrovat se"
+          "Zaregistrovat se jako klient"
         )}
       </Button>
     </form>

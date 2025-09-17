@@ -1,3 +1,5 @@
+// src/frontend/src/lib/api/therapists.ts
+
 import apiClient from "./client";
 import type { User, CreateTherapistDto, UpdateTherapistDto } from "./types";
 

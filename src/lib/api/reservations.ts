@@ -1,38 +1,44 @@
-import  apiClient  from "./client"
+import apiClient from "./client"
 import type { Reservation, CreateReservationDto, UpdateReservationDto } from "./types"
 
 // Objekt, který seskupuje všechny funkce pro práci s rezervacemi.
-// Je to přehlednější a lépe se to bude udržovat.
 export const reservationsApi = {
   async getAll(): Promise<Reservation[]> {
-    return apiClient.get("/reservations")
+    const response = await apiClient.get<Reservation[]>("/reservations")
+    return response.data
   },
 
-  async getById(id: string): Promise<Reservation> {
-    return apiClient.get(`/reservations/${id}`)
+  async getById(id: number): Promise<Reservation> {
+    const response = await apiClient.get<Reservation>(`/reservations/${id}`)
+    return response.data
   },
 
   async create(data: CreateReservationDto): Promise<Reservation> {
-    return apiClient.post("/reservations", data)
+    const response = await apiClient.post<Reservation>("/reservations", data)
+    return response.data
   },
 
-  async update(id: string, data: UpdateReservationDto): Promise<Reservation> {
-    return apiClient.patch(`/reservations/${id}`, data)
+  async update(id: number, data: UpdateReservationDto): Promise<Reservation> {
+    const response = await apiClient.patch<Reservation>(`/reservations/${id}`, data)
+    return response.data
   },
 
-  async delete(id: string): Promise<void> {
-    return apiClient.delete(`/reservations/${id}`)
+  async delete(id: number): Promise<void> {
+    await apiClient.delete(`/reservations/${id}`)
   },
 
   async getByDateRange(startDate: string, endDate: string): Promise<Reservation[]> {
-    return apiClient.get(`/reservations?startDate=${startDate}&endDate=${endDate}`)
+    const response = await apiClient.get<Reservation[]>(`/reservations?startDate=${startDate}&endDate=${endDate}`)
+    return response.data
   },
 
-  async getByClient(clientId: string): Promise<Reservation[]> {
-    return apiClient.get(`/reservations?clientId=${clientId}`)
+  async getByClient(clientId: number): Promise<Reservation[]> {
+    const response = await apiClient.get<Reservation[]>(`/reservations?clientId=${clientId}`)
+    return response.data
   },
 
-  async getByTherapist(therapistId: string): Promise<Reservation[]> {
-    return apiClient.get(`/reservations?therapistId=${therapistId}`)
+  async getByTherapist(therapistId: number): Promise<Reservation[]> {
+    const response = await apiClient.get<Reservation[]>(`/reservations?therapistId=${therapistId}`)
+    return response.data
   },
 }

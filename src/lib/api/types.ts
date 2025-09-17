@@ -2,41 +2,41 @@
 
 // --- Enumy pro lepší typovou bezpečnost ---
 export enum UserRole {
-SUPER_ADMIN = 'SUPER_ADMIN',
-  ADMIN = 'ADMIN',
-  TERAPEUT = 'TERAPEUT',
-  RECEPCNI = 'RECEPCNI',
-  ASISTENT = 'ASISTENT',
-  KOORDINATOR = 'KOORDINATOR',
-  MASER = 'MASER',
-  MANAGER = 'MANAGER',
-  ESHOP_SPRAVCE = 'ESHOP_SPRAVCE',
+  SUPER_ADMIN = "SUPER_ADMIN",
+  ADMIN = "ADMIN",
+  TERAPEUT = "TERAPEUT",
+  RECEPCNI = "RECEPCNI",
+  ASISTENT = "ASISTENT",
+  KOORDINATOR = "KOORDINATOR",
+  MASER = "MASER",
+  MANAGER = "MANAGER",
+  ESHOP_SPRAVCE = "ESHOP_SPRAVCE",
+  CLIENT = "CLIENT", 
 }
 
 export enum ReservationStatus {
-  Pending = 'PENDING',
-  Confirmed = 'CONFIRMED',
-  Cancelled = 'CANCELLED',
-  Completed = 'COMPLETED',
+  Pending = "PENDING",
+  Confirmed = "CONFIRMED",
+  Cancelled = "CANCELLED",
+  Completed = "COMPLETED",
 }
 
 export enum TransactionStatus {
-  Paid = 'PAID',
-  Unpaid = 'UNPAID',
+  Paid = "PAID",
+  Unpaid = "UNPAID",
 }
 
 // --- Uživatelé ---
 export interface User {
   id: number
   email: string
-  role: UserRole 
+  role: UserRole
   firstName: string
   lastName: string
-  token: string 
+  token: string
 }
 
-
-export type CreateTherapistDto = Omit<User, 'id' | 'token'>
+export type CreateTherapistDto = Omit<User, "id" | "token">
 export type UpdateTherapistDto = Partial<CreateTherapistDto>
 
 // --- Klienti ---
@@ -96,7 +96,7 @@ export interface CreateReservationDto {
   startTime: string
   notes?: string
 }
-export type UpdateReservationDto = Partial<Omit<CreateReservationDto, 'clientId'>>
+export type UpdateReservationDto = Partial<Omit<CreateReservationDto, "clientId">>
 
 // --- Transakce a Produkty ---
 export interface Product {
@@ -119,7 +119,7 @@ export interface Transaction {
   id: number
   total: number
   paymentMethod: string
-  status: TransactionStatus 
+  status: TransactionStatus // NÁVRH: Použití enumu
   createdAt: string
   items: TransactionItem[]
   client: Client

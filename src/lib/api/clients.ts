@@ -1,3 +1,5 @@
+// src/frontend/src/lib/api/clients.ts
+
 import apiClient from "./client"; 
 import type { Client, CreateClientDto, UpdateClientDto } from "./types";
 

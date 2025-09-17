@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         console.log(`[v0] Redirecting to OAuth: ${authUrl}`)
-        window.location.href = authUrl
+        window.location.href = `${authUrl}?role=CLIENT`
       } catch (error) {
         console.log(`[v0] OAuth endpoint not available for ${provider}`)
         throw new Error(
@@ -146,6 +146,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return "/assistant/dashboard"
       case UserRole.ESHOP_SPRAVCE:
         return "/eshop/dashboard"
+      case UserRole.CLIENT:
+        return "/client/dashboard"
       default:
         return "/dashboard"
     }
@@ -159,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = {
     user,
     login,
-    register, // Added register to context value
+    register,
     loginWithOAuth,
     logout,
     isLoading,
