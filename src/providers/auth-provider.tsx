@@ -61,8 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (credentials: RegisterCredentials) => {
     try {
+      console.log("[v0] Starting registration process...")
+
       const response = await apiClient.post<LoginResponse>("/auth/register", credentials)
       const registerResponseData = response.data
+
+      console.log("[v0] Registration successful, setting up user session...")
 
       const cookieOptions = {
         expires: 7,
@@ -77,8 +81,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token: registerResponseData.access_token,
       }
       setUser(userToStore)
+
+      console.log("[v0] User registration and login completed successfully")
     } catch (error) {
       console.error("Chyba při registraci:", error)
+
+      if (error instanceof Error) {
+        if (error.message.includes("timeout")) {
+          throw new Error("Registrace trvá příliš dlouho. Zkuste to prosím později.")
+        } else if (error.message.includes("Network Error") || error.message.includes("Síťová chyba")) {
+          throw new Error("Problém s připojením k serveru. Zkontrolujte internetové připojení.")
+        }
+      }
+
       throw error
     }
   }

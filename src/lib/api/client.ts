@@ -1,5 +1,3 @@
-// src/frontend/src/lib/api/client.ts
-
 import axios from "axios"
 import Cookies from "js-cookie"
 
@@ -14,7 +12,7 @@ const getApiBaseUrl = () => {
 // Vytvoříme centrální instanci axiosu
 const apiClient = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 15000,
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -59,6 +57,12 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     console.log(`[v0] API Error:`, error.message, error.response?.status)
+
+    if (error.code === "ECONNABORTED" && error.message.includes("timeout")) {
+      console.error("[v0] Request timeout - server took too long to respond")
+      const errorMessage = "Server neodpovídá. Zkuste to prosím později nebo zkontrolujte připojení k internetu."
+      return Promise.reject(new Error(errorMessage))
+    }
 
     // Handle network errors (CORS, connection issues)
     if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
