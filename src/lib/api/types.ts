@@ -11,7 +11,7 @@ export enum UserRole {
   MASER = "MASER",
   MANAGER = "MANAGER",
   ESHOP_SPRAVCE = "ESHOP_SPRAVCE",
-  CLIENT = "CLIENT", 
+  CLIENT = "CLIENT", // Added missing CLIENT role for customer registration
 }
 
 export enum ReservationStatus {
@@ -24,6 +24,13 @@ export enum ReservationStatus {
 export enum TransactionStatus {
   Paid = "PAID",
   Unpaid = "UNPAID",
+}
+
+export enum TimeBlockType {
+  BREAK = "BREAK",
+  VACATION = "VACATION",
+  SICK_LEAVE = "SICK_LEAVE",
+  OTHER = "OTHER",
 }
 
 // --- Uživatelé ---
@@ -96,7 +103,29 @@ export interface CreateReservationDto {
   startTime: string
   notes?: string
 }
-export type UpdateReservationDto = Partial<Omit<CreateReservationDto, "clientId">>
+export type UpdateReservationDto = Partial<Omit<CreateReservationDto, "clientId">> & {
+  endTime?: string
+}
+
+// --- Časové bloky ---
+export interface TimeBlock {
+  id: number
+  startTime: string
+  endTime: string
+  type: TimeBlockType
+  reason: string | null
+  therapist?: User
+}
+
+export interface CreateTimeBlockDto {
+  therapistId: number
+  startTime: string
+  endTime: string
+  type: TimeBlockType
+  reason?: string
+}
+
+export type UpdateTimeBlockDto = Partial<CreateTimeBlockDto>
 
 // --- Transakce a Produkty ---
 export interface Product {
