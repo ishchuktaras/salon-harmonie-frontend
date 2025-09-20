@@ -1,64 +1,66 @@
 /**
- * PKCE (Proof Key for Code Exchange) utility functions for OAuth 2.0
- * Used for secure OAuth flows in public clients (frontend applications)
+ * PKCE (Proof Key for Code Exchange) utilities for OAuth 2.0
+ * Implements RFC 7636 for secure OAuth flows
  */
 
+export interface PKCEParams {
+  codeVerifier: string
+  state: string
+  provider: string
+}
+
 /**
- * Generates a cryptographically secure random code verifier
- * @returns Base64URL-encoded random string
+ * Generate a cryptographically secure random string for PKCE code verifier
  */
 export function generateCodeVerifier(): string {
   const array = new Uint8Array(32)
   crypto.getRandomValues(array)
-  return base64URLEncode(array)
+  return btoa(String.fromCharCode.apply(null, Array.from(array)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "")
 }
 
 /**
- * Generates a code challenge from a code verifier using SHA256
- * @param codeVerifier The code verifier to hash
- * @returns Base64URL-encoded SHA256 hash of the code verifier
+ * Generate code challenge from code verifier using SHA256
  */
 export async function generateCodeChallenge(codeVerifier: string): Promise<string> {
   const encoder = new TextEncoder()
   const data = encoder.encode(codeVerifier)
   const digest = await crypto.subtle.digest("SHA-256", data)
-  return base64URLEncode(new Uint8Array(digest))
+  return btoa(String.fromCharCode.apply(null, Array.from(new Uint8Array(digest))))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "")
 }
 
 /**
- * Base64URL-encode a Uint8Array
- * @param array The array to encode
- * @returns Base64URL-encoded string
+ * PKCE Storage utility for managing OAuth parameters in localStorage
  */
-function base64URLEncode(array: Uint8Array): string {
-  const base64 = btoa(String.fromCharCode(...Array.from(array)))
-  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "")
-}
-
 export const PKCEStorage = {
   /**
-   * Store PKCE parameters in localStorage with timestamp
+   * Store PKCE parameters in localStorage
    */
-  store: (codeVerifier: string, state: string, provider: string): void => {
+  store(codeVerifier: string, state: string, provider: string): void {
     try {
-      const timestamp = Date.now().toString()
+      console.log("[v0] Storing PKCE parameters in localStorage...")
       localStorage.setItem("oauth_code_verifier", codeVerifier)
       localStorage.setItem("oauth_state", state)
       localStorage.setItem("oauth_provider", provider)
-      localStorage.setItem("oauth_timestamp", timestamp)
+      localStorage.setItem("oauth_timestamp", Date.now().toString())
 
-      // Verify storage immediately
-      const stored = localStorage.getItem("oauth_code_verifier")
-      if (!stored || stored !== codeVerifier) {
-        throw new Error("Failed to store PKCE parameters")
+      // Verify storage
+      const stored = {
+        codeVerifier: localStorage.getItem("oauth_code_verifier"),
+        state: localStorage.getItem("oauth_state"),
+        provider: localStorage.getItem("oauth_provider"),
+        timestamp: localStorage.getItem("oauth_timestamp"),
       }
-
       console.log("[v0] PKCE parameters stored successfully:", {
-        codeVerifierStored: !!stored,
-        codeVerifierLength: stored?.length,
-        state,
-        provider,
-        timestamp,
+        codeVerifierLength: stored.codeVerifier?.length,
+        state: stored.state,
+        provider: stored.provider,
+        timestamp: stored.timestamp,
       })
     } catch (error) {
       console.error("[v0] Failed to store PKCE parameters:", error)
@@ -69,40 +71,45 @@ export const PKCEStorage = {
   /**
    * Retrieve PKCE parameters from localStorage
    */
-  retrieve: (): { codeVerifier: string; state: string; provider: string; timestamp: string } | null => {
+  retrieve(): PKCEParams | null {
     try {
+      console.log("[v0] Retrieving PKCE parameters from localStorage...")
+
       const codeVerifier = localStorage.getItem("oauth_code_verifier")
       const state = localStorage.getItem("oauth_state")
       const provider = localStorage.getItem("oauth_provider")
       const timestamp = localStorage.getItem("oauth_timestamp")
 
-      console.log("[v0] Retrieving PKCE parameters:", {
-        codeVerifier: !!codeVerifier,
+      console.log("[v0] Retrieved values:", {
+        codeVerifierExists: !!codeVerifier,
         codeVerifierLength: codeVerifier?.length,
-        state: !!state,
+        state,
         provider,
         timestamp,
       })
 
-      if (!codeVerifier || !state || !provider || !timestamp) {
+      if (!codeVerifier || !state || !provider) {
         console.error("[v0] Missing PKCE parameters:", {
           codeVerifier: !!codeVerifier,
           state: !!state,
           provider: !!provider,
-          timestamp: !!timestamp,
         })
         return null
       }
 
-      // Check if parameters are too old (10 minutes)
-      const age = Date.now() - Number.parseInt(timestamp)
-      if (age > 10 * 60 * 1000) {
-        console.error("[v0] PKCE parameters are too old, clearing...")
-        PKCEStorage.clear()
-        return null
+      // Check if parameters are not too old (30 minutes max)
+      if (timestamp) {
+        const age = Date.now() - Number.parseInt(timestamp)
+        const maxAge = 30 * 60 * 1000 // 30 minutes
+        if (age > maxAge) {
+          console.error("[v0] PKCE parameters expired:", { age, maxAge })
+          this.clear()
+          return null
+        }
       }
 
-      return { codeVerifier, state, provider, timestamp }
+      console.log("[v0] PKCE parameters retrieved successfully")
+      return { codeVerifier, state, provider }
     } catch (error) {
       console.error("[v0] Failed to retrieve PKCE parameters:", error)
       return null
@@ -112,15 +119,27 @@ export const PKCEStorage = {
   /**
    * Clear PKCE parameters from localStorage
    */
-  clear: (): void => {
+  clear(): void {
     try {
+      console.log("[v0] Clearing PKCE parameters from localStorage...")
       localStorage.removeItem("oauth_code_verifier")
       localStorage.removeItem("oauth_state")
       localStorage.removeItem("oauth_provider")
       localStorage.removeItem("oauth_timestamp")
-      console.log("[v0] PKCE parameters cleared from localStorage")
+      console.log("[v0] PKCE parameters cleared successfully")
     } catch (error) {
       console.error("[v0] Failed to clear PKCE parameters:", error)
     }
+  },
+
+  /**
+   * Check if PKCE parameters exist in localStorage
+   */
+  exists(): boolean {
+    return !!(
+      localStorage.getItem("oauth_code_verifier") &&
+      localStorage.getItem("oauth_state") &&
+      localStorage.getItem("oauth_provider")
+    )
   },
 }

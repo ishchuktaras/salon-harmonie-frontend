@@ -1,3 +1,5 @@
+// src/providers/auth-provider.tsx
+
 "use client"
 
 import { useState, useEffect, type ReactNode } from "react"
@@ -11,7 +13,8 @@ import {
 import { type User, UserRole } from "@/lib/api/types"
 import apiClient from "@/lib/api/client"
 import Cookies from "js-cookie"
-import { generateCodeVerifier, generateCodeChallenge } from "@/lib/api/oauth/pkce"
+import { generateCodeVerifier, generateCodeChallenge, PKCEStorage } from "@/lib/api/oauth/pkce"
+import { oauthApi } from "@/lib/api/oauth"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -103,6 +106,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log(`[v0] Starting OAuth ${provider} login...`)
 
+      const providersResponse = await oauthApi.getProviders()
+      const availableProvider = providersResponse.providers.find((p) => p.id === provider)
+
+      if (!availableProvider) {
+        throw new Error(`${provider} přihlášení není momentálně dostupné.`)
+      }
+
       const redirectUri =
         process.env.NODE_ENV === "development"
           ? "http://localhost:3000/auth/callback"
@@ -115,24 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const codeChallenge = await generateCodeChallenge(codeVerifier)
       console.log("[v0] PKCE parameters generated successfully")
 
-      localStorage.setItem("oauth_state", state)
-      localStorage.setItem("oauth_provider", provider)
-      localStorage.setItem("oauth_code_verifier", codeVerifier)
-      localStorage.setItem("oauth_timestamp", Date.now().toString())
-
-      console.log("[v0] Storing PKCE parameters in localStorage...")
-      const storedVerifier = localStorage.getItem("oauth_code_verifier")
-      console.log("[v0] Verification - stored code verifier:", {
-        stored: !!storedVerifier,
-        length: storedVerifier?.length,
-        matches: storedVerifier === codeVerifier,
-      })
-
-      if (!storedVerifier || storedVerifier !== codeVerifier) {
-        throw new Error("Nepodařilo se uložit PKCE parametry")
-      }
-
-      console.log("[v0] PKCE parameters stored and verified in localStorage")
+      PKCEStorage.store(codeVerifier, state, provider)
 
       // Construct OAuth URL based on provider
       let oauthUrl: string
@@ -147,13 +140,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           client_id: googleClientId,
           redirect_uri: redirectUri,
           response_type: "code",
-          scope: "openid email profile",
+          scope: availableProvider.scopes.join(" "),
           state: `${state}&provider=google`,
           code_challenge: codeChallenge,
           code_challenge_method: "S256",
         })
 
-        oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+        oauthUrl = `${availableProvider.authUrl}?${params.toString()}`
       } else {
         throw new Error(
           `${provider} přihlášení není momentálně dostupné. Zkuste to prosím později nebo použijte email a heslo.`,
@@ -166,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.location.href = oauthUrl
     } catch (error) {
       console.error(`Chyba při ${provider} přihlašování:`, error)
+      PKCEStorage.clear()
       throw error
     }
   }
@@ -195,7 +189,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await oauthApi.logout()
+    } catch (error) {
+      console.error("Logout API error:", error)
+      // Continue with local logout even if API fails
+    }
+
     Cookies.remove("token")
     setUser(null)
   }
@@ -208,6 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     isLoading,
     getRoleBasedRedirectPath,
+    setUser,
   }
 
   if (isLoading) {

@@ -26,6 +26,19 @@ export default function AuthCallbackPage() {
 
         console.log("[v0] OAuth callback started with params:", { code: !!code, state, provider, error })
 
+        console.log("[v0] Checking localStorage contents...")
+        const allKeys = Object.keys(localStorage)
+        console.log("[v0] All localStorage keys:", allKeys)
+
+        const localStorageValues = {
+          codeVerifier: !!localStorage.getItem("oauth_code_verifier"),
+          storedState: localStorage.getItem("oauth_state"),
+          storedProvider: localStorage.getItem("oauth_provider"),
+          timestamp: localStorage.getItem("oauth_timestamp"),
+          codeVerifierLength: localStorage.getItem("oauth_code_verifier")?.length,
+        }
+        console.log("[v0] LocalStorage values:", localStorageValues)
+
         if (error) {
           throw new Error(`OAuth chyba: ${error}`)
         }
@@ -36,21 +49,41 @@ export default function AuthCallbackPage() {
 
         setMessage("Ověřuji přihlášení...")
 
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
         const pkceParams = PKCEStorage.retrieve()
 
         if (!pkceParams) {
-          console.error("[v0] PKCE parameters not found or expired")
-          throw new Error("PKCE parametry nenalezeny nebo vypršely. Zkuste se přihlásit znovu.")
+          console.error("[v0] PKCE code verifier not found in localStorage")
+          console.error("[v0] Available localStorage keys:", Object.keys(localStorage))
+
+          // Try to manually check each key
+          const manualCheck = {
+            codeVerifier: localStorage.getItem("oauth_code_verifier"),
+            state: localStorage.getItem("oauth_state"),
+            provider: localStorage.getItem("oauth_provider"),
+            timestamp: localStorage.getItem("oauth_timestamp"),
+          }
+          console.error("[v0] Manual localStorage check:", manualCheck)
+
+          throw new Error("Chybí PKCE code verifier")
         }
 
         const { codeVerifier, state: storedState, provider: storedProvider } = pkceParams
 
         console.log("[v0] PKCE parameters retrieved successfully")
 
-        // Validate state parameter
-        if (state && !state.includes(storedState)) {
-          console.error("[v0] State parameter mismatch")
-          throw new Error("Neplatný state parametr")
+        if (state && storedState) {
+          // Extract state from Google's compound state parameter
+          const stateFromUrl = state.includes("&") ? state.split("&")[0] : state
+          if (stateFromUrl !== storedState) {
+            console.error("[v0] State parameter mismatch:", {
+              received: stateFromUrl,
+              stored: storedState,
+              fullState: state,
+            })
+            throw new Error("Neplatný state parametr")
+          }
         }
 
         setMessage("Dokončuji přihlášení...")

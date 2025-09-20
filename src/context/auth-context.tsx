@@ -1,5 +1,5 @@
 "use client"
-import { createContext } from "react"
+import { createContext, type Dispatch, type SetStateAction } from "react"
 import type { User, UserRole } from "@/lib/api/types"
 
 export interface LoginCredentials {
@@ -36,6 +36,7 @@ export interface AuthContextType {
   logout: () => void
   isLoading: boolean
   getRoleBasedRedirectPath: (role: UserRole) => string
+  setUser: Dispatch<SetStateAction<User | null>>
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined)
