@@ -6,13 +6,13 @@ import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sparkles, Loader2, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
-import Cookies from "js-cookie"
-import { UserRole } from "@/lib/api/types"
+import { PKCEStorage } from "@/lib/api/oauth/pkce"
+import { oauthApi } from "@/lib/api/oauth"
 
 export default function AuthCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { getRoleBasedRedirectPath } = useAuth()
+  const { getRoleBasedRedirectPath, setUser } = useAuth()
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
   const [message, setMessage] = useState("Zpracovávám přihlášení...")
 
@@ -36,116 +36,51 @@ export default function AuthCallbackPage() {
 
         setMessage("Ověřuji přihlášení...")
 
-        console.log("[v0] Checking localStorage contents...")
-        const allLocalKeys = Object.keys(localStorage)
-        console.log("[v0] All localStorage keys:", allLocalKeys)
+        const pkceParams = PKCEStorage.retrieve()
 
-        const codeVerifier = localStorage.getItem("oauth_code_verifier")
-        const storedState = localStorage.getItem("oauth_state")
-        const storedProvider = localStorage.getItem("oauth_provider")
-        const timestamp = localStorage.getItem("oauth_timestamp")
-
-        console.log("[v0] LocalStorage values:", {
-          codeVerifier: !!codeVerifier,
-          storedState,
-          storedProvider,
-          timestamp,
-          codeVerifierLength: codeVerifier?.length,
-        })
-
-        if (timestamp) {
-          const age = Date.now() - Number.parseInt(timestamp)
-          if (age > 10 * 60 * 1000) {
-            // 10 minutes
-            console.error("[v0] PKCE data is too old, clearing localStorage")
-            localStorage.removeItem("oauth_code_verifier")
-            localStorage.removeItem("oauth_state")
-            localStorage.removeItem("oauth_provider")
-            localStorage.removeItem("oauth_timestamp")
-            throw new Error("OAuth session vypršela, zkuste se přihlásit znovu")
-          }
+        if (!pkceParams) {
+          console.error("[v0] PKCE parameters not found or expired")
+          throw new Error("PKCE parametry nenalezeny nebo vypršely. Zkuste se přihlásit znovu.")
         }
 
-        if (!codeVerifier) {
-          console.error("[v0] PKCE code verifier not found in localStorage")
-          console.error("[v0] Available localStorage keys:", Object.keys(localStorage))
-          throw new Error("Chybí PKCE code verifier")
-        }
-        console.log("[v0] PKCE code verifier found successfully")
+        const { codeVerifier, state: storedState, provider: storedProvider } = pkceParams
 
-        console.log("[v0] Starting token exchange with Google...")
-        const tokenRequestBody = {
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+        console.log("[v0] PKCE parameters retrieved successfully")
+
+        // Validate state parameter
+        if (state && !state.includes(storedState)) {
+          console.error("[v0] State parameter mismatch")
+          throw new Error("Neplatný state parametr")
+        }
+
+        setMessage("Dokončuji přihlášení...")
+
+        console.log("[v0] Calling backend OAuth callback API...")
+        const callbackResponse = await oauthApi.handleCallback({
           code,
-          grant_type: "authorization_code",
-          redirect_uri:
-            process.env.NODE_ENV === "production"
-              ? "https://salon-harmonie-frontend.vercel.app/auth/callback"
-              : "http://localhost:3000/auth/callback",
-          code_verifier: codeVerifier,
-        }
-
-        console.log("[v0] Token request body:", { ...tokenRequestBody, code_verifier: "***" })
-
-        const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams(tokenRequestBody),
+          codeVerifier,
+          provider,
         })
 
-        console.log("[v0] Token response status:", tokenResponse.status)
+        console.log("[v0] Backend OAuth callback successful")
 
-        if (!tokenResponse.ok) {
-          const errorData = await tokenResponse.text()
-          console.error("[v0] Token exchange error response:", errorData)
-          throw new Error(`Chyba při získávání tokenu: ${tokenResponse.status}`)
+        PKCEStorage.clear()
+
+        const userWithToken = {
+          ...callbackResponse.user,
+          token: callbackResponse.access_token,
         }
 
-        const tokenData = await tokenResponse.json()
-        console.log("[v0] Token exchange successful")
-        const { access_token } = tokenData
-
-        console.log("[v0] Cleaning up localStorage...")
-        localStorage.removeItem("oauth_code_verifier")
-        localStorage.removeItem("oauth_state")
-        localStorage.removeItem("oauth_provider")
-        localStorage.removeItem("oauth_timestamp")
-
-        const userResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-          },
-        })
-
-        if (!userResponse.ok) {
-          throw new Error("Chyba při získávání uživatelských dat")
+        // Update auth context with user data
+        if (setUser) {
+          setUser(userWithToken)
         }
-
-        const userData = await userResponse.json()
-
-        const mockUser = {
-          id: userData.id,
-          email: userData.email,
-          name: userData.name,
-          role: UserRole.CLIENT, // Default role
-          avatar: userData.picture,
-        }
-
-        Cookies.set("token", access_token, {
-          expires: 7,
-          secure: true,
-          sameSite: "strict",
-        })
-
-        localStorage.setItem("user", JSON.stringify(mockUser))
 
         setStatus("success")
         setMessage("Přihlášení úspěšné! Přesměrovávám...")
         toast.success("Úspěšně přihlášeno")
 
-        const redirectPath = getRoleBasedRedirectPath(mockUser.role)
+        const redirectPath = getRoleBasedRedirectPath(callbackResponse.user.role as any)
 
         setTimeout(() => {
           router.push(redirectPath)
@@ -156,6 +91,8 @@ export default function AuthCallbackPage() {
         setMessage("Chyba při přihlašování. Zkuste to znovu.")
         toast.error("Chyba při přihlašování")
 
+        PKCEStorage.clear()
+
         setTimeout(() => {
           router.push("/login")
         }, 3000)
@@ -163,7 +100,7 @@ export default function AuthCallbackPage() {
     }
 
     handleOAuthCallback()
-  }, [searchParams, router, getRoleBasedRedirectPath])
+  }, [searchParams, router, getRoleBasedRedirectPath, setUser])
 
   const getStatusIcon = () => {
     switch (status) {
