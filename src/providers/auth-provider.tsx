@@ -1,5 +1,3 @@
-// src/providers/auth-provider.tsx
-
 "use client"
 
 import { useState, useEffect, type ReactNode } from "react"
@@ -125,7 +123,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const codeChallenge = await generateCodeChallenge(codeVerifier)
       console.log("[v0] PKCE parameters generated successfully")
 
+      console.log("[v0] Storing PKCE parameters...")
       PKCEStorage.store(codeVerifier, state, provider)
+
+      const storedParams = PKCEStorage.retrieve()
+      if (!storedParams) {
+        throw new Error("Failed to store PKCE parameters - verification failed")
+      }
+      console.log("[v0] PKCE parameters storage verified successfully")
 
       // Construct OAuth URL based on provider
       let oauthUrl: string
@@ -154,6 +159,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       console.log(`[v0] Redirecting to ${provider} OAuth...`)
+
+      await new Promise((resolve) => setTimeout(resolve, 100))
 
       // Redirect to OAuth provider
       window.location.href = oauthUrl
