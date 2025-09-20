@@ -36,24 +36,39 @@ export default function AuthCallbackPage() {
 
         setMessage("Ověřuji přihlášení...")
 
-        console.log("[v0] Checking sessionStorage contents...")
-        const allSessionKeys = Object.keys(sessionStorage)
-        console.log("[v0] All sessionStorage keys:", allSessionKeys)
+        console.log("[v0] Checking localStorage contents...")
+        const allLocalKeys = Object.keys(localStorage)
+        console.log("[v0] All localStorage keys:", allLocalKeys)
 
-        const codeVerifier = sessionStorage.getItem("oauth_code_verifier")
-        const storedState = sessionStorage.getItem("oauth_state")
-        const storedProvider = sessionStorage.getItem("oauth_provider")
+        const codeVerifier = localStorage.getItem("oauth_code_verifier")
+        const storedState = localStorage.getItem("oauth_state")
+        const storedProvider = localStorage.getItem("oauth_provider")
+        const timestamp = localStorage.getItem("oauth_timestamp")
 
-        console.log("[v0] SessionStorage values:", {
+        console.log("[v0] LocalStorage values:", {
           codeVerifier: !!codeVerifier,
           storedState,
           storedProvider,
+          timestamp,
           codeVerifierLength: codeVerifier?.length,
         })
 
+        if (timestamp) {
+          const age = Date.now() - Number.parseInt(timestamp)
+          if (age > 10 * 60 * 1000) {
+            // 10 minutes
+            console.error("[v0] PKCE data is too old, clearing localStorage")
+            localStorage.removeItem("oauth_code_verifier")
+            localStorage.removeItem("oauth_state")
+            localStorage.removeItem("oauth_provider")
+            localStorage.removeItem("oauth_timestamp")
+            throw new Error("OAuth session vypršela, zkuste se přihlásit znovu")
+          }
+        }
+
         if (!codeVerifier) {
-          console.error("[v0] PKCE code verifier not found in sessionStorage")
-          console.error("[v0] Available sessionStorage keys:", Object.keys(sessionStorage))
+          console.error("[v0] PKCE code verifier not found in localStorage")
+          console.error("[v0] Available localStorage keys:", Object.keys(localStorage))
           throw new Error("Chybí PKCE code verifier")
         }
         console.log("[v0] PKCE code verifier found successfully")
@@ -92,12 +107,12 @@ export default function AuthCallbackPage() {
         console.log("[v0] Token exchange successful")
         const { access_token } = tokenData
 
-        console.log("[v0] Cleaning up sessionStorage...")
-        sessionStorage.removeItem("oauth_code_verifier")
-        sessionStorage.removeItem("oauth_state")
-        sessionStorage.removeItem("oauth_provider")
+        console.log("[v0] Cleaning up localStorage...")
+        localStorage.removeItem("oauth_code_verifier")
+        localStorage.removeItem("oauth_state")
+        localStorage.removeItem("oauth_provider")
+        localStorage.removeItem("oauth_timestamp")
 
-        // Get user info from Google
         const userResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
           headers: {
             Authorization: `Bearer ${access_token}`,
@@ -110,7 +125,6 @@ export default function AuthCallbackPage() {
 
         const userData = await userResponse.json()
 
-        // Create mock user object for demo purposes
         const mockUser = {
           id: userData.id,
           email: userData.email,
@@ -119,14 +133,12 @@ export default function AuthCallbackPage() {
           avatar: userData.picture,
         }
 
-        // Store token and user data
         Cookies.set("token", access_token, {
           expires: 7,
           secure: true,
           sameSite: "strict",
         })
 
-        // Store user data in localStorage for demo
         localStorage.setItem("user", JSON.stringify(mockUser))
 
         setStatus("success")

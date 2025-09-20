@@ -115,13 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const codeChallenge = await generateCodeChallenge(codeVerifier)
       console.log("[v0] PKCE parameters generated successfully")
 
-      // Store state and code verifier in sessionStorage for verification
-      sessionStorage.setItem("oauth_state", state)
-      sessionStorage.setItem("oauth_provider", provider)
-      sessionStorage.setItem("oauth_code_verifier", codeVerifier)
+      localStorage.setItem("oauth_state", state)
+      localStorage.setItem("oauth_provider", provider)
+      localStorage.setItem("oauth_code_verifier", codeVerifier)
+      localStorage.setItem("oauth_timestamp", Date.now().toString())
 
-      console.log("[v0] Storing PKCE parameters in sessionStorage...")
-      const storedVerifier = sessionStorage.getItem("oauth_code_verifier")
+      console.log("[v0] Storing PKCE parameters in localStorage...")
+      const storedVerifier = localStorage.getItem("oauth_code_verifier")
       console.log("[v0] Verification - stored code verifier:", {
         stored: !!storedVerifier,
         length: storedVerifier?.length,
@@ -132,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Nepodařilo se uložit PKCE parametry")
       }
 
-      console.log("[v0] PKCE parameters stored and verified in sessionStorage")
+      console.log("[v0] PKCE parameters stored and verified in localStorage")
 
       // Construct OAuth URL based on provider
       let oauthUrl: string
