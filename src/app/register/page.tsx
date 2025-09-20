@@ -20,8 +20,6 @@ export default function RegisterPage() {
     setIsGoogleLoading(true)
     try {
       await loginWithOAuth("google")
-      toast.success("Úspěšně registrováno přes Google")
-      router.push("/dashboard")
     } catch (error: any) {
       console.error("Google registration error:", error)
       toast.error(error.message || "Chyba při registraci přes Google")
@@ -34,8 +32,6 @@ export default function RegisterPage() {
     setIsAppleLoading(true)
     try {
       await loginWithOAuth("apple")
-      toast.success("Úspěšně registrováno přes Apple")
-      router.push("/dashboard")
     } catch (error: any) {
       console.error("Apple registration error:", error)
       toast.error(error.message || "Chyba při registraci přes Apple")
