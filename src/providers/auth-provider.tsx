@@ -12,6 +12,20 @@ import { type User, UserRole } from "@/lib/api/types"
 import apiClient from "@/lib/api/client"
 import Cookies from "js-cookie"
 
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: any) => void
+          prompt: () => void
+          renderButton: (element: HTMLElement, config: any) => void
+        }
+      }
+    }
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -34,6 +48,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initializeUser()
   }, [])
+
+  useEffect(() => {
+    const initializeGoogleSignIn = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          callback: handleGoogleSignIn,
+        })
+      }
+    }
+
+    // Load Google Identity Services script
+    if (!window.google) {
+      const script = document.createElement("script")
+      script.src = "https://accounts.google.com/gsi/client"
+      script.async = true
+      script.defer = true
+      script.onload = initializeGoogleSignIn
+      document.head.appendChild(script)
+    } else {
+      initializeGoogleSignIn()
+    }
+  }, [])
+
+  const handleGoogleSignIn = async (response: any) => {
+    try {
+      console.log("[v0] Processing Google Sign-In response...")
+
+      // Decode JWT token to get user info
+      const payload = JSON.parse(atob(response.credential.split(".")[1]))
+
+      // Create user object from Google data
+      const googleUser: User = {
+        id: payload.sub,
+        email: payload.email,
+        firstName: payload.given_name || "",
+        lastName: payload.family_name || "",
+        role: UserRole.CLIENT,
+        token: response.credential, // Use Google JWT as token for demo
+      }
+
+      // Store token in cookies
+      const cookieOptions = {
+        expires: 7,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? ("strict" as const) : ("lax" as const),
+      }
+
+      Cookies.set("token", response.credential, cookieOptions)
+      setUser(googleUser)
+
+      console.log("[v0] Google Sign-In successful")
+
+      // Redirect to appropriate dashboard
+      const redirectPath = getRoleBasedRedirectPath(googleUser.role)
+      window.location.href = redirectPath
+    } catch (error) {
+      console.error("Google Sign-In error:", error)
+      throw new Error("Chyba při Google přihlášení")
+    }
+  }
 
   const login = async (credentials: LoginCredentials) => {
     try {
@@ -102,64 +177,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log(`[v0] Starting OAuth ${provider} login...`)
 
-      const redirectUri =
-        process.env.NODE_ENV === "development"
-          ? "http://localhost:3000/auth/callback"
-          : "https://salon-harmonie-frontend.vercel.app/auth/callback"
-
-      const state = Math.random().toString(36).substring(2, 15)
-
-      // Store state in sessionStorage for verification
-      sessionStorage.setItem("oauth_state", state)
-      sessionStorage.setItem("oauth_provider", provider)
-
-      // Construct OAuth URL based on provider
-      let oauthUrl: string
-
       if (provider === "google") {
-        const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
-        if (!googleClientId) {
-          throw new Error("Google OAuth není nakonfigurováno. Kontaktujte administrátora.")
+        if (!window.google) {
+          throw new Error("Google Sign-In není načteno. Zkuste to prosím znovu.")
         }
 
-        const params = new URLSearchParams({
-          client_id: googleClientId,
-          redirect_uri: redirectUri,
-          response_type: "code",
-          scope: "openid email profile",
-          state: `${state}&provider=google`,
-          access_type: "offline",
-          prompt: "consent",
-        })
-
-        oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+        // Trigger Google Sign-In popup
+        window.google.accounts.id.prompt()
       } else {
-        /* else if (provider === "apple") {
-        const appleClientId = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID
-        if (!appleClientId) {
-          throw new Error("Apple OAuth není nakonfigurováno. Kontaktujte administrátora.")
-        }
-
-        const params = new URLSearchParams({
-          client_id: appleClientId,
-          redirect_uri: redirectUri,
-          response_type: "code",
-          scope: "name email",
-          state: `${state}&provider=apple`,
-          response_mode: "form_post",
-        })
-
-        oauthUrl = `https://appleid.apple.com/auth/authorize?${params.toString()}`
-      } */
         throw new Error(
           `${provider} přihlášení není momentálně dostupné. Zkuste to prosím později nebo použijte email a heslo.`,
         )
       }
-
-      console.log(`[v0] Redirecting to ${provider} OAuth...`)
-
-      // Redirect to OAuth provider
-      window.location.href = oauthUrl
     } catch (error) {
       console.error(`Chyba při ${provider} přihlašování:`, error)
       throw error
