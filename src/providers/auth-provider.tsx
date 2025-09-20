@@ -102,9 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       console.log(`[v0] Starting OAuth ${provider} login...`)
 
-      const baseUrl = process.env.NODE_ENV === "development" ? "http://localhost:3000" : window.location.origin
+      const redirectUri =
+        process.env.NODE_ENV === "development"
+          ? "http://localhost:3000/auth/callback"
+          : "https://salon-harmonie-frontend.vercel.app/auth/callback"
 
-      const redirectUri = `${baseUrl}/auth/callback`
       const state = Math.random().toString(36).substring(2, 15)
 
       // Store state in sessionStorage for verification
