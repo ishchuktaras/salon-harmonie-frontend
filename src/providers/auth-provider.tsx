@@ -100,43 +100,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithOAuth = async (provider: OAuthProvider) => {
     try {
-      const isDevelopment = process.env.NODE_ENV === "development"
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://salon-harmonie-backend.onrender.com"
+      console.log(`[v0] Starting OAuth ${provider} login...`)
 
-      const providerName = provider === "google" ? "Google" : "Apple"
+      const baseUrl = process.env.NODE_ENV === "development" ? "http://localhost:3000" : window.location.origin
 
-      if (isDevelopment) {
-        console.log(`[v0] OAuth ${provider} requested in development mode`)
-        throw new Error(
-          `${providerName} přihlášení není momentálně dostupné. Backend neobsahuje potřebné OAuth endpointy. Použijte prosím email a heslo pro přihlášení.`,
-        )
-      }
+      const redirectUri = `${baseUrl}/auth/callback`
+      const state = Math.random().toString(36).substring(2, 15)
 
-      const authUrl = `${baseUrl}/auth/${provider}`
+      // Store state in sessionStorage for verification
+      sessionStorage.setItem("oauth_state", state)
+      sessionStorage.setItem("oauth_provider", provider)
 
-      try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000)
+      // Construct OAuth URL based on provider
+      let oauthUrl: string
 
-        const response = await fetch(authUrl, {
-          method: "HEAD",
-          signal: controller.signal,
-        })
-
-        clearTimeout(timeoutId)
-
-        if (!response.ok) {
-          throw new Error(`OAuth endpoint returned ${response.status}`)
+      if (provider === "google") {
+        const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        if (!googleClientId) {
+          throw new Error("Google OAuth není nakonfigurováno. Kontaktujte administrátora.")
         }
 
-        console.log(`[v0] Redirecting to OAuth: ${authUrl}`)
-        window.location.href = `${authUrl}?role=CLIENT`
-      } catch (error) {
-        console.log(`[v0] OAuth endpoint not available for ${provider}`)
+        const params = new URLSearchParams({
+          client_id: googleClientId,
+          redirect_uri: redirectUri,
+          response_type: "code",
+          scope: "openid email profile",
+          state: `${state}&provider=google`,
+          access_type: "offline",
+          prompt: "consent",
+        })
+
+        oauthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+      } else {
+        /* else if (provider === "apple") {
+        const appleClientId = process.env.NEXT_PUBLIC_APPLE_CLIENT_ID
+        if (!appleClientId) {
+          throw new Error("Apple OAuth není nakonfigurováno. Kontaktujte administrátora.")
+        }
+
+        const params = new URLSearchParams({
+          client_id: appleClientId,
+          redirect_uri: redirectUri,
+          response_type: "code",
+          scope: "name email",
+          state: `${state}&provider=apple`,
+          response_mode: "form_post",
+        })
+
+        oauthUrl = `https://appleid.apple.com/auth/authorize?${params.toString()}`
+      } */
         throw new Error(
-          `${providerName} přihlášení není momentálně dostupné. Zkuste to prosím později nebo použijte email a heslo.`,
+          `${provider} přihlášení není momentálně dostupné. Zkuste to prosím později nebo použijte email a heslo.`,
         )
       }
+
+      console.log(`[v0] Redirecting to ${provider} OAuth...`)
+
+      // Redirect to OAuth provider
+      window.location.href = oauthUrl
     } catch (error) {
       console.error(`Chyba při ${provider} přihlašování:`, error)
       throw error
