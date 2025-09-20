@@ -11,7 +11,7 @@ import {
 import { type User, UserRole } from "@/lib/api/types"
 import apiClient from "@/lib/api/client"
 import Cookies from "js-cookie"
-import { generateCodeVerifier, generateCodeChallenge } from "@/lib/api/pkce-utils"
+import { generateCodeVerifier, generateCodeChallenge } from "@/lib/api/oauth/pkce"
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -110,13 +110,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const state = Math.random().toString(36).substring(2, 15)
 
+      console.log("[v0] Generating PKCE parameters...")
       const codeVerifier = generateCodeVerifier()
       const codeChallenge = await generateCodeChallenge(codeVerifier)
+      console.log("[v0] PKCE parameters generated successfully")
 
       // Store state and code verifier in sessionStorage for verification
       sessionStorage.setItem("oauth_state", state)
       sessionStorage.setItem("oauth_provider", provider)
       sessionStorage.setItem("oauth_code_verifier", codeVerifier)
+
+      console.log("[v0] Storing PKCE parameters in sessionStorage...")
+      const storedVerifier = sessionStorage.getItem("oauth_code_verifier")
+      console.log("[v0] Verification - stored code verifier:", {
+        stored: !!storedVerifier,
+        length: storedVerifier?.length,
+        matches: storedVerifier === codeVerifier,
+      })
+
+      if (!storedVerifier || storedVerifier !== codeVerifier) {
+        throw new Error("Nepodařilo se uložit PKCE parametry")
+      }
+
+      console.log("[v0] PKCE parameters stored and verified in sessionStorage")
 
       // Construct OAuth URL based on provider
       let oauthUrl: string

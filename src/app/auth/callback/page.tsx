@@ -24,6 +24,8 @@ export default function AuthCallbackPage() {
         const provider = searchParams.get("provider") || "google"
         const error = searchParams.get("error")
 
+        console.log("[v0] OAuth callback started with params:", { code: !!code, state, provider, error })
+
         if (error) {
           throw new Error(`OAuth chyba: ${error}`)
         }
@@ -34,37 +36,63 @@ export default function AuthCallbackPage() {
 
         setMessage("Ověřuji přihlášení...")
 
+        console.log("[v0] Checking sessionStorage contents...")
+        const allSessionKeys = Object.keys(sessionStorage)
+        console.log("[v0] All sessionStorage keys:", allSessionKeys)
+
         const codeVerifier = sessionStorage.getItem("oauth_code_verifier")
+        const storedState = sessionStorage.getItem("oauth_state")
+        const storedProvider = sessionStorage.getItem("oauth_provider")
+
+        console.log("[v0] SessionStorage values:", {
+          codeVerifier: !!codeVerifier,
+          storedState,
+          storedProvider,
+          codeVerifierLength: codeVerifier?.length,
+        })
+
         if (!codeVerifier) {
+          console.error("[v0] PKCE code verifier not found in sessionStorage")
+          console.error("[v0] Available sessionStorage keys:", Object.keys(sessionStorage))
           throw new Error("Chybí PKCE code verifier")
         }
+        console.log("[v0] PKCE code verifier found successfully")
+
+        console.log("[v0] Starting token exchange with Google...")
+        const tokenRequestBody = {
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+          code,
+          grant_type: "authorization_code",
+          redirect_uri:
+            process.env.NODE_ENV === "production"
+              ? "https://salon-harmonie-frontend.vercel.app/auth/callback"
+              : "http://localhost:3000/auth/callback",
+          code_verifier: codeVerifier,
+        }
+
+        console.log("[v0] Token request body:", { ...tokenRequestBody, code_verifier: "***" })
 
         const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
           },
-          body: new URLSearchParams({
-            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-            code,
-            grant_type: "authorization_code",
-            redirect_uri:
-              process.env.NODE_ENV === "production"
-                ? "https://salon-harmonie-frontend.vercel.app/auth/callback"
-                : "http://localhost:3000/auth/callback",
-            code_verifier: codeVerifier,
-          }),
+          body: new URLSearchParams(tokenRequestBody),
         })
+
+        console.log("[v0] Token response status:", tokenResponse.status)
 
         if (!tokenResponse.ok) {
           const errorData = await tokenResponse.text()
-          console.error("Token exchange error:", errorData)
-          throw new Error("Chyba při získávání tokenu")
+          console.error("[v0] Token exchange error response:", errorData)
+          throw new Error(`Chyba při získávání tokenu: ${tokenResponse.status}`)
         }
 
         const tokenData = await tokenResponse.json()
+        console.log("[v0] Token exchange successful")
         const { access_token } = tokenData
 
+        console.log("[v0] Cleaning up sessionStorage...")
         sessionStorage.removeItem("oauth_code_verifier")
         sessionStorage.removeItem("oauth_state")
         sessionStorage.removeItem("oauth_provider")
