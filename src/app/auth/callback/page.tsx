@@ -41,14 +41,18 @@ export default function AuthCallbackPage() {
           },
           body: new URLSearchParams({
             client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-            client_secret: "", // Note: This should be handled by backend in production
             code,
             grant_type: "authorization_code",
-            redirect_uri: "https://salon-harmonie-frontend.vercel.app/auth/callback",
+            redirect_uri:
+              process.env.NODE_ENV === "production"
+                ? "https://salon-harmonie-frontend.vercel.app/auth/callback"
+                : "http://localhost:3000/auth/callback",
           }),
         })
 
         if (!tokenResponse.ok) {
+          const errorData = await tokenResponse.text()
+          console.error("Token exchange error:", errorData)
           throw new Error("Chyba při získávání tokenu")
         }
 
