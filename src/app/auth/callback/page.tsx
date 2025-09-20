@@ -34,6 +34,11 @@ export default function AuthCallbackPage() {
 
         setMessage("Ověřuji přihlášení...")
 
+        const codeVerifier = sessionStorage.getItem("oauth_code_verifier")
+        if (!codeVerifier) {
+          throw new Error("Chybí PKCE code verifier")
+        }
+
         const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
           method: "POST",
           headers: {
@@ -47,6 +52,7 @@ export default function AuthCallbackPage() {
               process.env.NODE_ENV === "production"
                 ? "https://salon-harmonie-frontend.vercel.app/auth/callback"
                 : "http://localhost:3000/auth/callback",
+            code_verifier: codeVerifier,
           }),
         })
 
@@ -58,6 +64,10 @@ export default function AuthCallbackPage() {
 
         const tokenData = await tokenResponse.json()
         const { access_token } = tokenData
+
+        sessionStorage.removeItem("oauth_code_verifier")
+        sessionStorage.removeItem("oauth_state")
+        sessionStorage.removeItem("oauth_provider")
 
         // Get user info from Google
         const userResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
