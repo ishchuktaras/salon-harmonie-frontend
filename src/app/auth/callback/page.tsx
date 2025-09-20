@@ -6,9 +6,8 @@ import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sparkles, Loader2, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
-import apiClient from "@/lib/api/client"
 import Cookies from "js-cookie"
-import type { User, UserRole } from "@/lib/api/types"
+import { UserRole } from "@/lib/api/types"
 
 export default function AuthCallbackPage() {
   const router = useRouter()
@@ -35,30 +34,64 @@ export default function AuthCallbackPage() {
 
         setMessage("Ověřuji přihlášení...")
 
-        const response = await apiClient.post("/auth/oauth/callback", {
-          code,
-          state,
-          provider,
+        const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+            client_secret: "", // Note: This should be handled by backend in production
+            code,
+            grant_type: "authorization_code",
+            redirect_uri: "https://salon-harmonie-frontend.vercel.app/auth/callback",
+          }),
         })
 
-        const { access_token, user } = response.data
+        if (!tokenResponse.ok) {
+          throw new Error("Chyba při získávání tokenu")
+        }
 
+        const tokenData = await tokenResponse.json()
+        const { access_token } = tokenData
+
+        // Get user info from Google
+        const userResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+          },
+        })
+
+        if (!userResponse.ok) {
+          throw new Error("Chyba při získávání uživatelských dat")
+        }
+
+        const userData = await userResponse.json()
+
+        // Create mock user object for demo purposes
+        const mockUser = {
+          id: userData.id,
+          email: userData.email,
+          name: userData.name,
+          role: UserRole.CLIENT, // Default role
+          avatar: userData.picture,
+        }
+
+        // Store token and user data
         Cookies.set("token", access_token, {
           expires: 7,
           secure: true,
           sameSite: "strict",
         })
 
-        const completeUser: User = {
-          ...user,
-          token: access_token,
-        }
+        // Store user data in localStorage for demo
+        localStorage.setItem("user", JSON.stringify(mockUser))
 
         setStatus("success")
         setMessage("Přihlášení úspěšné! Přesměrovávám...")
         toast.success("Úspěšně přihlášeno")
 
-        const redirectPath = getRoleBasedRedirectPath(user.role as UserRole)
+        const redirectPath = getRoleBasedRedirectPath(mockUser.role)
 
         setTimeout(() => {
           router.push(redirectPath)
