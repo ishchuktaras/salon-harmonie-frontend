@@ -9,32 +9,34 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar } from "@/components/ui/calendar"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { cs } from "date-fns/locale"
-import { CalendarIcon } from "lucide-react"
+import { Calendar } from "lucide-react"
 import { useState, useEffect } from "react"
 import apiClient from "@/lib/api/client"
 import { type User, TimeBlockType } from "@/lib/api/types"
 import { timeBlocksApi } from "@/lib/api/time-blocks"
 
-const blockSchema = z.object({
-  therapistId: z.string().min(1, "Terapeut je povinný."),
-  startTime: z.date({
-    required_error: "Datum a čas začátku je povinný.",
-    invalid_type_error: "Neplatný formát data a času začátku.",
-  }),
-  endTime: z.date({
-    required_error: "Datum a čas konce je povinný.",
-    invalid_type_error: "Neplatný formát data a času konce.",
-  }),
-  type: z.nativeEnum(TimeBlockType, {
-    required_error: "Typ blokace je povinný.",
-    invalid_type_error: "Neplatný typ blokace.",
-  }),
-  reason: z.string().optional(),
-})
+const blockSchema = z
+  .object({
+    therapistId: z.string().min(1, "Terapeut je povinný."),
+    startTime: z.date({
+      message: "Datum a čas začátku je povinný.",
+    }),
+    endTime: z.date({
+      message: "Datum a čas konce je povinný.",
+    }),
+    type: z.nativeEnum(TimeBlockType, {
+      message: "Typ blokace je povinný.",
+    }),
+    reason: z.string().optional(),
+  })
+  .refine((data) => data.endTime > data.startTime, {
+    message: "Čas konce musí být po času začátku.",
+    path: ["endTime"],
+  })
 
 type BlockFormValues = z.infer<typeof blockSchema>
 
@@ -145,12 +147,12 @@ export default function CreateBlockModal({ isOpen, onClose, onBlockCreated, init
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start text-left font-normal bg-transparent">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <Calendar className="mr-2 h-4 w-4" />
                         {field.value ? format(field.value, "PPP HH:mm", { locale: cs }) : <span>Vyberte datum</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      <CalendarComponent mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
                       <div className="p-2 border-t">
                         <Input
                           type="time"
@@ -182,12 +184,12 @@ export default function CreateBlockModal({ isOpen, onClose, onBlockCreated, init
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-full justify-start text-left font-normal bg-transparent">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <Calendar className="mr-2 h-4 w-4" />
                         {field.value ? format(field.value, "PPP HH:mm", { locale: cs }) : <span>Vyberte datum</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                      <CalendarComponent mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
                       <div className="p-2 border-t">
                         <Input
                           type="time"
