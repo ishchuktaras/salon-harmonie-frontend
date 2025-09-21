@@ -22,7 +22,21 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
+      console.log("[v0] Google login button clicked - starting OAuth process...")
+
+      // Check localStorage before OAuth
+      console.log("[v0] Pre-OAuth localStorage check:")
+      console.log("[v0] Available keys:", Object.keys(localStorage))
+      console.log("[v0] PKCE keys before OAuth:", {
+        codeVerifier: !!localStorage.getItem("oauth_code_verifier"),
+        state: !!localStorage.getItem("oauth_state"),
+        provider: !!localStorage.getItem("oauth_provider"),
+        timestamp: !!localStorage.getItem("oauth_timestamp"),
+      })
+
       await loginWithOAuth("google")
+
+      console.log("[v0] loginWithOAuth completed successfully")
     } catch (error) {
       console.error("Google login error:", error)
       toast.error(error instanceof Error ? error.message : "Chyba při Google přihlašování")

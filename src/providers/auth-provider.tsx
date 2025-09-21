@@ -123,14 +123,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const codeChallenge = await generateCodeChallenge(codeVerifier)
       console.log("[v0] PKCE parameters generated successfully")
 
-      console.log("[v0] Storing PKCE parameters...")
+      console.log("[v0] Storing PKCE parameters with enhanced verification...")
+
+      // Clear any existing data first
+      PKCEStorage.clear()
+
+      // Store parameters
       PKCEStorage.store(codeVerifier, state, provider)
 
-      const storedParams = PKCEStorage.retrieve()
-      if (!storedParams) {
-        throw new Error("Failed to store PKCE parameters - verification failed")
+      // Multiple verification attempts with delays
+      let verificationAttempts = 0
+      let storedParams = null
+
+      while (verificationAttempts < 3 && !storedParams) {
+        await new Promise((resolve) => setTimeout(resolve, 50)) // Small delay
+        storedParams = PKCEStorage.retrieve()
+        verificationAttempts++
+
+        if (!storedParams) {
+          console.warn(`[v0] PKCE verification attempt ${verificationAttempts} failed, retrying...`)
+          // Re-store parameters
+          PKCEStorage.store(codeVerifier, state, provider)
+        }
       }
-      console.log("[v0] PKCE parameters storage verified successfully")
+
+      if (!storedParams) {
+        throw new Error("Failed to store PKCE parameters after multiple attempts")
+      }
+
+      console.log("[v0] PKCE parameters storage verified successfully after", verificationAttempts, "attempts")
+
+      // Additional verification - check localStorage directly
+      const directCheck = {
+        codeVerifier: localStorage.getItem("oauth_code_verifier"),
+        state: localStorage.getItem("oauth_state"),
+        provider: localStorage.getItem("oauth_provider"),
+        timestamp: localStorage.getItem("oauth_timestamp"),
+      }
+
+      console.log("[v0] Direct localStorage verification:", directCheck)
+
+      if (!directCheck.codeVerifier || !directCheck.state || !directCheck.provider) {
+        throw new Error("Direct localStorage verification failed")
+      }
 
       // Construct OAuth URL based on provider
       let oauthUrl: string
@@ -158,9 +193,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         )
       }
 
+      console.log(`[v0] Final localStorage check before redirect:`)
+      console.log(`[v0] Available keys:`, Object.keys(localStorage))
+      console.log(`[v0] PKCE keys exist:`, {
+        codeVerifier: !!localStorage.getItem("oauth_code_verifier"),
+        state: !!localStorage.getItem("oauth_state"),
+        provider: !!localStorage.getItem("oauth_provider"),
+        timestamp: !!localStorage.getItem("oauth_timestamp"),
+      })
+
       console.log(`[v0] Redirecting to ${provider} OAuth...`)
 
-      await new Promise((resolve) => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 200))
 
       // Redirect to OAuth provider
       window.location.href = oauthUrl
