@@ -1,43 +1,92 @@
-import apiClient from "./client"
-import { type User } from "./types"
-
-interface HandleCallbackParams {
+export interface OAuthCallbackRequest {
   code: string
   codeVerifier: string
   provider: string
 }
 
-// This is similar to LoginResponse but defined here to avoid potential
-// circular dependencies with auth-provider/auth-context.
-interface OAuthCallbackResponse {
+export interface OAuthCallbackResponse {
+  success: boolean
+  user: {
+    id: string
+    email: string
+    firstName: string
+    lastName: string
+    name: string
+    avatar: string
+    role: string
+    provider: string
+    providerId: string
+  }
   access_token: string
-  user: Omit<User, "token">
+  expires_in: number
 }
 
-export interface OAuthProviderInfo {
+export interface OAuthProvider {
   id: string
   name: string
+  enabled: boolean
   authUrl: string
   scopes: string[]
+  pkceRequired: boolean
 }
 
-interface GetProvidersResponse {
-  providers: OAuthProviderInfo[]
+export interface OAuthProvidersResponse {
+  providers: OAuthProvider[]
 }
 
 export const oauthApi = {
-  async getProviders(): Promise<GetProvidersResponse> {
-    const response = await apiClient.get<GetProvidersResponse>("/auth/oauth/providers")
-    return response.data
+  /**
+   * Handle OAuth callback with authorization code and PKCE verifier
+   */
+  handleCallback: async (data: OAuthCallbackRequest): Promise<OAuthCallbackResponse> => {
+    const response = await fetch("/api/auth/oauth/callback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    })
+
+    if (!response.ok) {
+      throw new Error(`OAuth callback failed: ${response.status}`)
+    }
+
+    return response.json()
   },
 
-  async handleCallback(params: HandleCallbackParams): Promise<OAuthCallbackResponse> {
-    const response = await apiClient.post<OAuthCallbackResponse>("/auth/oauth/callback", params)
-    return response.data
+  /**
+   * Get available OAuth providers
+   */
+  getProviders: async (): Promise<OAuthProvidersResponse> => {
+    const response = await fetch("/api/auth/oauth/providers", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to get OAuth providers: ${response.status}`)
+    }
+
+    return response.json()
   },
 
-  async logout(): Promise<void> {
-    // This request is often fire-and-forget
-    await apiClient.post("/auth/logout")
+  /**
+   * Logout user and clear tokens
+   */
+  logout: async (): Promise<{ success: boolean; message: string }> => {
+    const response = await fetch("/api/auth/logout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Logout failed: ${response.status}`)
+    }
+
+    return response.json()
   },
 }
