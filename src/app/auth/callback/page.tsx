@@ -8,6 +8,7 @@ import { Sparkles, Loader2, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
 import { PKCEStorage } from "@/lib/api/oauth/pkce"
 import { oauthApi } from "@/lib/api/oauth"
+import type { UserRole } from "@/lib/api/types"
 
 export default function AuthCallbackPage() {
   const router = useRouter()
@@ -101,7 +102,9 @@ export default function AuthCallbackPage() {
 
         const userWithToken = {
           ...callbackResponse.user,
+          id: Number.parseInt(callbackResponse.user.id, 10),
           token: callbackResponse.access_token,
+          role: callbackResponse.user.role as UserRole,
         }
 
         // Update auth context with user data
