@@ -49,6 +49,11 @@ export async function POST(request: NextRequest) {
         ? "https://salon-harmonie-frontend.vercel.app/auth/oauth-callback"
         : "http://localhost:3000/auth/oauth-callback"
 
+    if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+      console.error("[v0] Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID environment variable")
+      return NextResponse.json({ error: "OAuth configuration error: Missing client ID" }, { status: 500 })
+    }
+
     // Exchange authorization code for access token using PKCE
     const tokenRequestBody = {
       client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
@@ -85,6 +90,8 @@ export async function POST(request: NextRequest) {
         status: tokenResponse.status,
         statusText: tokenResponse.statusText,
         error: errorData,
+        redirect_uri: redirectUri,
+        client_id_prefix: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.substring(0, 20),
       })
 
       return NextResponse.json(
@@ -92,6 +99,11 @@ export async function POST(request: NextRequest) {
           error: "Failed to exchange authorization code for token",
           details: errorData,
           status: tokenResponse.status,
+          debug_info: {
+            redirect_uri: redirectUri,
+            environment: process.env.NODE_ENV,
+            client_id_configured: !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          },
         },
         { status: 400 },
       )
@@ -108,12 +120,16 @@ export async function POST(request: NextRequest) {
     })
 
     if (!userResponse.ok) {
-      console.error("[v0] Failed to get user info from Google")
+      console.error("[v0] Failed to get user info from Google:", userResponse.status)
       return NextResponse.json({ error: "Failed to get user information" }, { status: 400 })
     }
 
     const userData: GoogleUserInfo = await userResponse.json()
-    console.log("[v0] User info retrieved successfully")
+    console.log("[v0] User info retrieved successfully:", {
+      email: userData.email,
+      name: userData.name,
+      verified: userData.verified_email,
+    })
 
     // Here you would typically:
     // 1. Check if user exists in your database
@@ -153,6 +169,7 @@ export async function POST(request: NextRequest) {
       path: "/",
     })
 
+    console.log("[v0] OAuth callback completed successfully")
     return response
   } catch (error) {
     console.error("[v0] OAuth callback API error:", error)
@@ -162,6 +179,12 @@ export async function POST(request: NextRequest) {
         stack: error.stack,
       })
     }
-    return NextResponse.json({ error: "Internal server error during OAuth callback" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Internal server error during OAuth callback",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    )
   }
 }
