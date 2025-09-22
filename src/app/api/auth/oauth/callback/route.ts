@@ -26,27 +26,46 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { code, codeVerifier, provider = "google" } = body
 
-    console.log("[v0] OAuth callback API called:", { provider, hasCode: !!code, hasCodeVerifier: !!codeVerifier })
+    console.log("[v0] OAuth callback API called:", {
+      provider,
+      hasCode: !!code,
+      hasCodeVerifier: !!codeVerifier,
+      codeLength: code?.length,
+      codeVerifierLength: codeVerifier?.length,
+    })
 
     if (!code || !codeVerifier) {
+      console.error("[v0] Missing required parameters:", { code: !!code, codeVerifier: !!codeVerifier })
       return NextResponse.json({ error: "Missing required parameters: code and codeVerifier" }, { status: 400 })
     }
 
     if (provider !== "google") {
+      console.error("[v0] Unsupported provider:", provider)
       return NextResponse.json({ error: `Provider ${provider} is not supported` }, { status: 400 })
     }
+
+    const redirectUri =
+      process.env.NODE_ENV === "production"
+        ? "https://salon-harmonie-frontend.vercel.app/auth/oauth-callback"
+        : "http://localhost:3000/auth/oauth-callback"
 
     // Exchange authorization code for access token using PKCE
     const tokenRequestBody = {
       client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       code,
       grant_type: "authorization_code",
-      redirect_uri:
-        process.env.NODE_ENV === "production"
-          ? "https://salon-harmonie-frontend.vercel.app/auth/callback"
-          : "http://localhost:3000/auth/callback",
+      redirect_uri: redirectUri,
       code_verifier: codeVerifier,
     }
+
+    console.log("[v0] Token request details:", {
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.substring(0, 20) + "...",
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code",
+      code_verifier_length: codeVerifier.length,
+      code_length: code.length,
+      environment: process.env.NODE_ENV,
+    })
 
     console.log("[v0] Exchanging code for token with Google...")
 
@@ -58,10 +77,24 @@ export async function POST(request: NextRequest) {
       body: new URLSearchParams(tokenRequestBody),
     })
 
+    console.log("[v0] Google token response status:", tokenResponse.status)
+
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text()
-      console.error("[v0] Google token exchange failed:", errorData)
-      return NextResponse.json({ error: "Failed to exchange authorization code for token" }, { status: 400 })
+      console.error("[v0] Google token exchange failed:", {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: errorData,
+      })
+
+      return NextResponse.json(
+        {
+          error: "Failed to exchange authorization code for token",
+          details: errorData,
+          status: tokenResponse.status,
+        },
+        { status: 400 },
+      )
     }
 
     const tokenData: GoogleTokenResponse = await tokenResponse.json()
@@ -123,6 +156,12 @@ export async function POST(request: NextRequest) {
     return response
   } catch (error) {
     console.error("[v0] OAuth callback API error:", error)
+    if (error instanceof Error) {
+      console.error("[v0] Error details:", {
+        message: error.message,
+        stack: error.stack,
+      })
+    }
     return NextResponse.json({ error: "Internal server error during OAuth callback" }, { status: 500 })
   }
 }

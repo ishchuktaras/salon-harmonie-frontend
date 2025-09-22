@@ -113,8 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const redirectUri =
         process.env.NODE_ENV === "development"
-          ? "http://localhost:3000/auth/callback"
-          : "https://salon-harmonie-frontend.vercel.app/auth/callback"
+          ? "http://localhost:3000/auth/oauth-callback"
+          : "https://salon-harmonie-frontend.vercel.app/auth/oauth-callback"
 
       const state = Math.random().toString(36).substring(2, 15)
 
