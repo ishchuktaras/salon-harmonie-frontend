@@ -2,6 +2,7 @@
 // Popis: Hlavní layout aplikace. Zde integrujeme náš AuthProvider.
 
 // Importujeme AuthProvider z jeho nového, odděleného umístění.
+import GDPRProvider from '@/components/gdpr/GDPRProvider';
 import { AuthProvider } from '@/providers/auth-provider';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -27,7 +28,9 @@ export default function RootLayout({
           bude mít přístup k autentizačnímu kontextu.
         */}
         <AuthProvider>
-          {children}
+          <GDPRProvider>
+            {children}
+          </GDPRProvider>
         </AuthProvider>
       </body>
     </html>
