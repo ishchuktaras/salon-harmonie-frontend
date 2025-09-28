@@ -1,3 +1,5 @@
+// Soubor: src/app/api/auth/oauth/callback/route.ts
+
 import { type NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
@@ -24,95 +26,43 @@ interface GoogleUserInfo {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { code, codeVerifier, provider = "google" } = body
-
-    console.log("[v0] OAuth callback API called:", {
-      provider,
-      hasCode: !!code,
-      hasCodeVerifier: !!codeVerifier,
-      codeLength: code?.length,
-      codeVerifierLength: codeVerifier?.length,
-    })
+    const { code, codeVerifier } = body
 
     if (!code || !codeVerifier) {
-      console.error("[v0] Missing required parameters:", { code: !!code, codeVerifier: !!codeVerifier })
-      return NextResponse.json({ error: "Missing required parameters: code and codeVerifier" }, { status: 400 })
+      return NextResponse.json({ error: "Missing required parameters" }, { status: 400 })
     }
 
-    if (provider !== "google") {
-      console.error("[v0] Unsupported provider:", provider)
-      return NextResponse.json({ error: `Provider ${provider} is not supported` }, { status: 400 })
-    }
-
+    // ---  Adresa musí být stejná jako v auth-provider.tsx ---
     const redirectUri =
       process.env.NODE_ENV === "production"
-        ? "https://salon-harmonie-frontend.vercel.app/auth/oauth-callback"
-        : "http://localhost:3000/auth/oauth-callback"
+        ? "https://salon-harmonie-frontend.vercel.app/auth/callback"
+        : "http://localhost:3000/auth/callback"
 
-    if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-      console.error("[v0] Missing NEXT_PUBLIC_GOOGLE_CLIENT_ID environment variable")
-      return NextResponse.json({ error: "OAuth configuration error: Missing client ID" }, { status: 500 })
-    }
-
-    // Exchange authorization code for access token using PKCE
-    const tokenRequestBody = {
-      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-      code,
-      grant_type: "authorization_code",
-      redirect_uri: redirectUri,
-      code_verifier: codeVerifier,
-    }
-
-    console.log("[v0] Token request details:", {
-      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.substring(0, 20) + "...",
-      redirect_uri: redirectUri,
-      grant_type: "authorization_code",
-      code_verifier_length: codeVerifier.length,
-      code_length: code.length,
-      environment: process.env.NODE_ENV,
-    })
-
-    console.log("[v0] Exchanging code for token with Google...")
-
+    // Výměna autorizačního kódu za access token
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams(tokenRequestBody),
+      // ---  Přidán client_secret ---
+      body: new URLSearchParams({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: redirectUri,
+        code_verifier: codeVerifier,
+      }),
     })
 
-    console.log("[v0] Google token response status:", tokenResponse.status)
-
     if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.text()
-      console.error("[v0] Google token exchange failed:", {
-        status: tokenResponse.status,
-        statusText: tokenResponse.statusText,
-        error: errorData,
-        redirect_uri: redirectUri,
-        client_id_prefix: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.substring(0, 20),
-      })
-
-      return NextResponse.json(
-        {
-          error: "Failed to exchange authorization code for token",
-          details: errorData,
-          status: tokenResponse.status,
-          debug_info: {
-            redirect_uri: redirectUri,
-            environment: process.env.NODE_ENV,
-            client_id_configured: !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-          },
-        },
-        { status: 400 },
-      )
+      const errorData = await tokenResponse.json();
+      console.error("Google token exchange failed:", errorData);
+      return NextResponse.json({ error: "Failed to exchange token", details: errorData }, { status: 400 });
     }
+    const tokenData: GoogleTokenResponse = await tokenResponse.json();
 
-    const tokenData: GoogleTokenResponse = await tokenResponse.json()
-    console.log("[v0] Token exchange successful")
-
-    // Get user information from Google
+    // Získání informací o uživateli od Google
     const userResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
@@ -120,71 +70,45 @@ export async function POST(request: NextRequest) {
     })
 
     if (!userResponse.ok) {
-      console.error("[v0] Failed to get user info from Google:", userResponse.status)
       return NextResponse.json({ error: "Failed to get user information" }, { status: 400 })
     }
+    const userData: GoogleUserInfo = await userResponse.json();
 
-    const userData: GoogleUserInfo = await userResponse.json()
-    console.log("[v0] User info retrieved successfully:", {
-      email: userData.email,
-      name: userData.name,
-      verified: userData.verified_email,
-    })
+    // Volání našeho NestJS backendu pro vytvoření/přihlášení uživatele
+    const backendResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            email: userData.email,
+            firstName: userData.given_name,
+            lastName: userData.family_name,
+        }),
+    });
 
-    // Here you would typically:
-    // 1. Check if user exists in your database
-    // 2. Create user if they don't exist
-    // 3. Generate your own JWT token
-    // 4. Return user data and token
-
-    // For now, we'll create a mock user response
-    const user = {
-      id: userData.id,
-      email: userData.email,
-      firstName: userData.given_name,
-      lastName: userData.family_name,
-      name: userData.name,
-      avatar: userData.picture,
-      role: "CLIENT", // Default role
-      provider: "google",
-      providerId: userData.id,
+    if (!backendResponse.ok) {
+        const errorData = await backendResponse.json();
+        console.error("Backend login failed:", errorData);
+        return NextResponse.json({ error: "Backend login failed", details: errorData }, { status: 500 });
     }
+    
+    const { access_token, user } = await backendResponse.json();
 
-    // In a real implementation, you would generate your own JWT token here
-    // For now, we'll use the Google access token (not recommended for production)
-    const response = NextResponse.json({
-      success: true,
-      user,
-      access_token: tokenData.access_token,
-      expires_in: tokenData.expires_in,
-    })
+    // Nastavení cookie s naším vlastním JWT tokenem z backendu
+    cookies().set("token", access_token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 3600, // 1 hodina
+        path: "/",
+    });
 
-    // Set HTTP-only cookie for security
-    const cookieStore = cookies()
-    cookieStore.set("token", tokenData.access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: tokenData.expires_in,
-      path: "/",
-    })
+    return NextResponse.json({
+        success: true,
+        user: { ...user, avatar: userData.picture },
+    });
 
-    console.log("[v0] OAuth callback completed successfully")
-    return response
   } catch (error) {
-    console.error("[v0] OAuth callback API error:", error)
-    if (error instanceof Error) {
-      console.error("[v0] Error details:", {
-        message: error.message,
-        stack: error.stack,
-      })
-    }
-    return NextResponse.json(
-      {
-        error: "Internal server error during OAuth callback",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    )
+    console.error("[OAuth Callback Error]", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
