@@ -20,10 +20,11 @@ interface DashboardData {
   }[];
   topTherapist: string;
   topService: string;
-  weeklySalesData: { date: string, total: number | null }[]; // Upraveno pro možný null
+  weeklySalesData: { date: string, total: number | null }[];
 }
 
-// Komponenta pro jednu statistickou kartu
+// ... (Komponenty StatCard a StatCardSkeleton zůstávají stejné) ...
+
 const StatCard = ({ title, value, change, icon: Icon, formatFn, changeSuffix = '%' }: any) => (
   <Card>
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -41,7 +42,6 @@ const StatCard = ({ title, value, change, icon: Icon, formatFn, changeSuffix = '
   </Card>
 );
 
-// Komponenta pro načítací "kostru"
 const StatCardSkeleton = () => (
   <Card>
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -55,6 +55,7 @@ const StatCardSkeleton = () => (
   </Card>
 );
 
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,7 +65,8 @@ export default function DashboardPage() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await apiClient.get<DashboardData>('/reports/dashboard-summary');
+        // --- OPRAVA ZDE ---
+        const response = await apiClient.get<DashboardData>('/reports/sales');
         setData(response.data);
       } catch (err) {
         setError('Data pro dashboard se nepodařilo načíst.');
