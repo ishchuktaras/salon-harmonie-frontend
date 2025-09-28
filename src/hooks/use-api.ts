@@ -1,45 +1,44 @@
-"use client"
+// Soubor: src/hooks/use-api.ts
 
-// src/lib/api/use-api.ts
+import { useAuth } from "@/hooks/use-auth";
+import { useCallback } from "react";
 
-import { useAuth } from "./use-auth"
-import { useCallback } from "react"
+export const useApi = () => {
+  const { user, logout } = useAuth();
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api"
+  const request = useCallback(
+    async <T = any>(
+      endpoint: string,
+      options: RequestInit = {}
+    ): Promise<T> => {
+      const headers = new Headers(options.headers || {});
 
-export function useApi() {
-  const { user } = useAuth() 
-
-  const apiFetch = useCallback(
-    async <T = any>(endpoint: string, options: RequestInit = {}): Promise<T> => {
-      const headers = new Headers(options.headers || {})
-      if (user?.token) {
-        headers.set("Authorization", `Bearer ${user.token}`)
-      }
       if (!headers.has("Content-Type")) {
-        headers.set("Content-Type", "application/json")
+        headers.set("Content-Type", "application/json");
       }
 
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers,
-      })
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`,
+        {
+          ...options,
+          headers,
+        }
+      );
+
+      if (response.status === 401) {
+        // Token je neplatný nebo vypršel, odhlásíme uživatele
+        logout();
+        throw new Error("Neautorizovaný přístup");
+      }
 
       if (!response.ok) {
-        // Handle HTTP errors
-        const errorData = await response.json().catch(() => ({ message: response.statusText }))
-        throw new Error(errorData.message || "An API error occurred")
+        throw new Error(`API chyba: ${response.statusText}`);
       }
 
-      // Handle cases with no response body (e.g., 204 No Content)
-      if (response.status === 204) {
-        return null as T
-      }
-
-      return response.json()
+      return response.json() as Promise<T>;
     },
-    [user?.token],
-  )
+    [logout] 
+  );
 
-  return { apiFetch }
-}
+  return { request };
+};
