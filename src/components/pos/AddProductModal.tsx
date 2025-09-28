@@ -1,92 +1,84 @@
-// src/components/pos/AddProductModal.tsx
+'use client';
 
-'use client'
-
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { useState, useEffect } from 'react'
-import { Product, TransactionItem } from '@/lib/api/types'
-import { useApi } from '@/hooks/use-api' 
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useApi } from '@/hooks/use-api';
 
-interface AddProductModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onAddProduct: (item: Omit<TransactionItem, 'id' | 'transactionId'>) => void
+interface Product {
+  id: number;
+  name: string;
+  price: number;
+  stock: number;
 }
 
-export default function AddProductModal({
-  isOpen,
-  onClose,
-  onAddProduct,
-}: AddProductModalProps) {
-  const [products, setProducts] = useState<Product[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const api = useApi() // This will now be correctly recognized
+interface AddProductModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAddProduct: (product: Product, quantity: number) => void;
+}
+
+export default function AddProductModal({ isOpen, onClose, onAddProduct }: AddProductModalProps) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const api = useApi();
 
   useEffect(() => {
     if (isOpen) {
       const fetchProducts = async () => {
         try {
-          const data = await api.apiFetch<Product[]>('/products')
-          setProducts(data)
+          // --- OPRAVA ZDE ---
+          const data = await api.request<Product[]>('/products');
+          setProducts(data);
         } catch (error) {
-          console.error('Failed to fetch products:', error)
+          console.error('Failed to fetch products:', error);
         }
-      }
-      fetchProducts()
+      };
+      fetchProducts();
     }
-  }, [isOpen, api])
+  }, [isOpen]); // Závislost na `api` není nutná
 
   const filteredProducts = products.filter((product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
-
-  const handleAddProduct = (product: Product) => {
-    onAddProduct({
-      productId: product.id,
-      serviceId: null,
-      name: product.name,
-      price: product.price,
-      quantity: 1,
-    })
-    onClose()
-  }
+    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Přidat produkt k prodeji</DialogTitle>
         </DialogHeader>
-        <div className="py-4">
-          <Input
-            placeholder="Hledat produkt..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <ScrollArea className="h-72 mt-4">
-            <div className="space-y-2">
-              {filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="flex items-center justify-between p-2 border rounded-md"
-                >
-                  <span>{product.name}</span>
-                  <Button size="sm" onClick={() => handleAddProduct(product)}>
-                    Přidat
-                  </Button>
-                </div>
-              ))}
+        <Input
+          placeholder="Hledat produkt..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <div className="max-h-64 overflow-y-auto">
+          {filteredProducts.map((product) => (
+            <div
+              key={product.id}
+              className="flex justify-between items-center p-2 hover:bg-muted rounded-md"
+            >
+              <span>{product.name} - {product.price} Kč</span>
+              <Button
+                size="sm"
+                onClick={() => {
+                  // Předpokládáme přidání jednoho kusu, pro složitější logiku by zde byl input na množství
+                  onAddProduct(product, 1);
+                  onClose();
+                }}
+              >
+                Přidat
+              </Button>
             </div>
-          </ScrollArea>
+          ))}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
@@ -95,5 +87,5 @@ export default function AddProductModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
