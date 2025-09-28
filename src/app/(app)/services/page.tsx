@@ -1,130 +1,92 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Service } from '@/lib/api/types'
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/ui/page-header';
+import { PlusCircle } from 'lucide-react';
 import { useApi } from '@/hooks/use-api';
-import { Skeleton } from '@/components/ui/skeleton'
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
-// Mock data pro lokální vývoj, pokud API ještě neběží
-const mockServices: Service[] = [
-  {
-    id: 1,
-    name: 'Relaxační masáž',
-    description: 'Uvolňující masáž pro celé tělo.',
-    duration: 60,
-    price: 1200,
-    therapists: [], 
-  },
-  {
-    id: 2,
-    name: 'Sportovní masáž',
-    description: 'Intenzivní masáž zaměřená na svalovou regeneraci.',
-    duration: 45,
-    price: 1000,
-    therapists: [], 
-  },
-  {
-    id: 3,
-    name: 'Lymfatická drenáž',
-    description: 'Jemná technika pro podporu lymfatického systému.',
-    duration: 90,
-    price: 1500,
-    therapists: [], 
-  },
-]
-
+// Definice typu pro službu, měla by odpovídat backendu
+interface Service {
+  id: number;
+  name: string;
+  description: string | null;
+  price: number;
+  duration: number; // v minutách
+}
 
 export default function ServicesPage() {
-  const [services, setServices] = useState<Service[]>([])
-  const [loading, setLoading] = useState(true)
-  const api = useApi()
+  const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const api = useApi();
 
   useEffect(() => {
     const fetchServices = async () => {
-      setLoading(true)
+      setIsLoading(true);
+      setError(null);
       try {
-        // Přepnuto na reálné volání API
-        const data = await api.apiFetch<Service[]>('/services');
+        // --- OPRAVA ZDE ---
+        const data = await api.request<Service[]>('/services');
         setServices(data);
-        
       } catch (error) {
-        console.error('Failed to fetch services:', error)
-        // V případě chyby API se zobrazí mock data, aby stránka fungovala
-        setServices(mockServices)
+        console.error("Failed to fetch services", error);
+        setError("Nepodařilo se načíst služby.");
+        toast.error("Chyba při načítání služeb.");
       } finally {
-        setLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchServices()
-  }, [api]) // Přidána závislost na `api` hooku
+    fetchServices();
+  }, []); // Závislost na `api` není nutná, pokud se nemění
 
-  // Vylepšený stav načítání pomocí "skeleton" komponent
-  if (loading) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Naše Služby</h1>
-          <Button disabled>Přidat novou službu</Button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
+  const formatCurrency = (value: number) => new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(value);
+  
+  return (
+    <>
+      <PageHeader
+        title="Správa služeb"
+        description="Zde můžete spravovat veškeré služby nabízené v salonu."
+      >
+        <Button>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Přidat novou službu
+        </Button>
+      </PageHeader>
+      <div className="p-4 md:p-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {isLoading ? (
+          Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
               <CardHeader>
                 <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-full mt-2" />
+                <Skeleton className="h-4 w-1/4 mt-2" />
               </CardHeader>
-              <CardContent className="space-y-2">
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-4 w-1/3" />
+              <CardContent>
+                <Skeleton className="h-10 w-full" />
               </CardContent>
-              <CardFooter className="flex justify-end">
-                <Skeleton className="h-10 w-20" />
-              </CardFooter>
             </Card>
-          ))}
-        </div>
+          ))
+        ) : error ? (
+          <div className="col-span-full text-red-500">{error}</div>
+        ) : (
+          services.map((service) => (
+            <Card key={service.id}>
+              <CardHeader>
+                <CardTitle>{service.name}</CardTitle>
+                <CardDescription>{service.duration} minut</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="font-semibold text-lg">{formatCurrency(service.price)}</p>
+                <p className="text-sm text-muted-foreground mt-2">{service.description}</p>
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
-    )
-  }
-
-  return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Naše Služby</h1>
-        <Button>Přidat novou službu</Button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map((service) => (
-          <Card key={service.id}>
-            <CardHeader>
-              <CardTitle>{service.name}</CardTitle>
-              <CardDescription>{service.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>
-                <strong>Délka:</strong> {service.duration} minut
-              </p>
-              <p>
-                <strong>Cena:</strong> {service.price.toLocaleString('cs-CZ')} Kč
-              </p>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button variant="outline">Upravit</Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    </div>
-  )
+    </>
+  );
 }
-
