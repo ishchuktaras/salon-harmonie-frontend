@@ -33,6 +33,7 @@ export interface AuthContextType {
   login: (credentials: LoginCredentials) => Promise<void>
   register: (credentials: RegisterCredentials) => Promise<void>
   loginWithOAuth: (provider: OAuthProvider) => Promise<void>
+  handleOAuthCallback: (code: string, state: string) => Promise<UserRole>; 
   logout: () => void
   isLoading: boolean
   getRoleBasedRedirectPath: (role: UserRole) => string

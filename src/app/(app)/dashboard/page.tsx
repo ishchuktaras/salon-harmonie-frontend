@@ -7,7 +7,7 @@ import apiClient from '@/lib/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar } from 'recharts';
 
-// Definujeme si typ pro data, která očekáváme z backendu
+// ... (interface DashboardData a komponenty StatCard, StatCardSkeleton zůstávají stejné) ...
 interface DashboardData {
   todaySales: number;
   salesChangePercentage: number;
@@ -22,8 +22,6 @@ interface DashboardData {
   topService: string;
   weeklySalesData: { date: string, total: number | null }[];
 }
-
-// ... (Komponenty StatCard a StatCardSkeleton zůstávají stejné) ...
 
 const StatCard = ({ title, value, change, icon: Icon, formatFn, changeSuffix = '%' }: any) => (
   <Card>
@@ -55,7 +53,6 @@ const StatCardSkeleton = () => (
   </Card>
 );
 
-
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,6 +67,7 @@ export default function DashboardPage() {
         setData(response.data);
       } catch (err) {
         setError('Data pro dashboard se nepodařilo načíst.');
+        console.error(err);
       } finally {
         setIsLoading(false);
       }

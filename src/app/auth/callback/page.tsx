@@ -1,142 +1,73 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sparkles, Loader2, CheckCircle, XCircle } from "lucide-react"
 import { toast } from "sonner"
 import { PKCEStorage } from "@/lib/api/oauth/pkce"
-import { oauthApi } from "@/lib/api/oauth"
-import type { UserRole } from "@/lib/api/types"
 
 export default function AuthCallbackPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { getRoleBasedRedirectPath, setUser } = useAuth()
+  const { handleOAuthCallback, getRoleBasedRedirectPath } = useAuth()
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
   const [message, setMessage] = useState("Zpracovávám přihlášení...")
 
+  // Ref pro sledování, zda byl callback již spuštěn, aby se zabránilo dvojitému spuštění
+  const callbackCalled = useRef(false);
+
   useEffect(() => {
-    const handleOAuthCallback = async () => {
+    const processCallback = async () => {
       try {
         const code = searchParams.get("code")
         const state = searchParams.get("state")
-        const provider = searchParams.get("provider") || "google"
         const error = searchParams.get("error")
 
-        console.log("[v0] OAuth callback started with params:", { code: !!code, state, provider, error })
-
-        console.log("[v0] Checking localStorage contents...")
-        const allKeys = Object.keys(localStorage)
-        console.log("[v0] All localStorage keys:", allKeys)
-
-        const localStorageValues = {
-          codeVerifier: !!localStorage.getItem("oauth_code_verifier"),
-          storedState: localStorage.getItem("oauth_state"),
-          storedProvider: localStorage.getItem("oauth_provider"),
-          timestamp: localStorage.getItem("oauth_timestamp"),
-          codeVerifierLength: localStorage.getItem("oauth_code_verifier")?.length,
-        }
-        console.log("[v0] LocalStorage values:", localStorageValues)
-
         if (error) {
-          throw new Error(`OAuth chyba: ${error}`)
+          throw new Error(`OAuth chyba: ${error}`);
         }
 
-        if (!code) {
-          throw new Error("Chybí autorizační kód")
+        if (!code || !state) {
+          throw new Error("Chybí autorizační kód nebo state parametr.");
         }
 
-        setMessage("Ověřuji přihlášení...")
+        setMessage("Ověřuji přihlášení...");
 
-        await new Promise((resolve) => setTimeout(resolve, 100))
+        // handleOAuthCallback nyní vrací roli uživatele
+        const userRole = await handleOAuthCallback(code, state);
 
-        const pkceParams = PKCEStorage.retrieve()
+        setStatus("success");
+        setMessage("Přihlášení úspěšné! Přesměrovávám...");
+        toast.success("Úspěšně přihlášeno");
 
-        if (!pkceParams) {
-          console.error("[v0] PKCE code verifier not found in localStorage")
-          console.error("[v0] Available localStorage keys:", Object.keys(localStorage))
-
-          // Try to manually check each key
-          const manualCheck = {
-            codeVerifier: localStorage.getItem("oauth_code_verifier"),
-            state: localStorage.getItem("oauth_state"),
-            provider: localStorage.getItem("oauth_provider"),
-            timestamp: localStorage.getItem("oauth_timestamp"),
-          }
-          console.error("[v0] Manual localStorage check:", manualCheck)
-
-          throw new Error("Chybí PKCE code verifier")
-        }
-
-        const { codeVerifier, state: storedState, provider: storedProvider } = pkceParams
-
-        console.log("[v0] PKCE parameters retrieved successfully")
-
-        if (state && storedState) {
-          // Extract state from Google's compound state parameter
-          const stateFromUrl = state.includes("&") ? state.split("&")[0] : state
-          if (stateFromUrl !== storedState) {
-            console.error("[v0] State parameter mismatch:", {
-              received: stateFromUrl,
-              stored: storedState,
-              fullState: state,
-            })
-            throw new Error("Neplatný state parametr")
-          }
-        }
-
-        setMessage("Dokončuji přihlášení...")
-
-        console.log("[v0] Calling backend OAuth callback API...")
-        const callbackResponse = await oauthApi.handleCallback({
-          code,
-          codeVerifier,
-          provider,
-        })
-
-        console.log("[v0] Backend OAuth callback successful")
-
-        PKCEStorage.clear()
-
-        const userWithToken = {
-          ...callbackResponse.user,
-          id: Number.parseInt(callbackResponse.user.id, 10),
-          token: callbackResponse.access_token,
-          role: callbackResponse.user.role as UserRole,
-        }
-
-        // Update auth context with user data
-        if (setUser) {
-          setUser(userWithToken)
-        }
-
-        setStatus("success")
-        setMessage("Přihlášení úspěšné! Přesměrovávám...")
-        toast.success("Úspěšně přihlášeno")
-
-        const redirectPath = getRoleBasedRedirectPath(callbackResponse.user.role as any)
+        const redirectPath = getRoleBasedRedirectPath(userRole);
 
         setTimeout(() => {
-          router.push(redirectPath)
-        }, 1500)
+          router.push(redirectPath);
+        }, 1500);
+
       } catch (error) {
-        console.error("OAuth callback error:", error)
-        setStatus("error")
-        setMessage("Chyba při přihlašování. Zkuste to znovu.")
-        toast.error("Chyba při přihlašování")
-
-        PKCEStorage.clear()
+        console.error("OAuth callback error:", error);
+        setStatus("error");
+        setMessage("Chyba při přihlašování. Zkuste to znovu.");
+        toast.error("Chyba při přihlašování");
+        
+        PKCEStorage.clear();
 
         setTimeout(() => {
-          router.push("/login")
-        }, 3000)
+          router.push("/login");
+        }, 3000);
       }
-    }
+    };
 
-    handleOAuthCallback()
-  }, [searchParams, router, getRoleBasedRedirectPath, setUser])
+    // Spustíme logiku pouze jednou
+    if (!callbackCalled.current) {
+      callbackCalled.current = true;
+      processCallback();
+    }
+  }, [searchParams, router, handleOAuthCallback, getRoleBasedRedirectPath]);
 
   const getStatusIcon = () => {
     switch (status) {
