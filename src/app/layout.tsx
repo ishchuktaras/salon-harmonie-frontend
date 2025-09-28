@@ -3,6 +3,7 @@
 
 // Importujeme AuthProvider z jeho nového, odděleného umístění.
 import GDPRProvider from '@/components/gdpr/GDPRProvider';
+import GoogleAnalytics from '@/components/analytics/GoogleAnalytics';
 import { AuthProvider } from '@/providers/auth-provider';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -30,6 +31,7 @@ export default function RootLayout({
         <AuthProvider>
           <GDPRProvider>
             {children}
+            <GoogleAnalytics />
           </GDPRProvider>
         </AuthProvider>
       </body>
