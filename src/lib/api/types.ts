@@ -40,7 +40,8 @@ export interface User {
   role: UserRole
   firstName: string
   lastName: string
-  token: string
+  // token: string
+  avatar?: string;
 }
 
 export type CreateTherapistDto = Omit<User, "id" | "token">
