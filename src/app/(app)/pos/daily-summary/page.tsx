@@ -1,100 +1,80 @@
-'use client'
+'use client';
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { PageHeader } from '@/components/ui/page-header'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
+import { PageHeader } from '@/components/ui/page-header';
 import { useApi } from '@/hooks/use-api';
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '@/components/ui/alert'
-import { Terminal } from 'lucide-react'
+import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
 
-export default function DailySummaryPage() {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const api = useApi()
-
-  const handlePerformCloseout = async () => {
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
-    try {
-      // Voláme backend endpoint pomocí správné metody apiFetch
-      const response = await api.apiFetch('/reports/daily-closeout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}), // Odesíláme prázdný objekt
-      })
-
-      // Zde bychom ideálně zobrazili data z 'response', např. souhrn tržeb
-      setSuccess(
-        'Denní uzávěrka byla úspěšně provedena a odeslána do účetnictví.',
-      )
-      console.log('Daily closeout response:', response)
-    } catch (err: any) {
-      console.error('Failed to perform daily closeout:', err)
-      setError(
-        'Nepodařilo se provést denní uzávěrku. Zkontrolujte konzoli pro více detailů.',
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="container mx-auto p-4">
-      <PageHeader
-        title="Denní uzávěrka"
-        description="Proveďte uzávěrku tržeb za aktuální den a odešlete souhrn do účetního systému."
-      />
-
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Provést uzávěrku</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p>
-            Kliknutím na tlačítko níže dojde k sečtení všech dnešních transakcí a
-            vytvoření souhrnného dokladu v systému POHODA. Tato akce je
-            nevratná.
-          </p>
-          <Button
-            onClick={handlePerformCloseout}
-            disabled={loading}
-            size="lg"
-          >
-            {loading ? 'Provádím...' : 'Provést denní uzávěrku'}
-          </Button>
-
-          {success && (
-            <Alert variant="default">
-              <Terminal className="h-4 w-4" />
-              <AlertTitle>Úspěch!</AlertTitle>
-              <AlertDescription>{success}</AlertDescription>
-            </Alert>
-          )}
-
-          {error && (
-            <Alert variant="destructive">
-              <Terminal className="h-4 w-4" />
-              <AlertTitle>Chyba</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  )
+interface CloseoutResponse {
+  message: string;
+  totalRevenue: number;
+  closedCount: number;
 }
 
+export default function DailySummaryPage() {
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [summary, setSummary] = useState<CloseoutResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const api = useApi();
+
+  const handleCloseout = async () => {
+    setIsLoading(true);
+    setSummary(null);
+    try {
+      const response = await api.request<CloseoutResponse>('/reports/daily-closeout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date }),
+      });
+      setSummary(response);
+      toast.success(response.message);
+    } catch (error) {
+      toast.error('Denní uzávěrku se nepodařilo provést.');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatCurrency = (value: number) => new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK' }).format(value / 100);
+
+  return (
+    <>
+      
+      <PageHeader
+        title="Denní uzávěrka"
+        description="Zde můžete provést denní uzávěrku tržeb pro vybrané datum. Tato akce sečte všechny dokončené transakce a označí je jako uzavřené."
+      />
+      <div className="p-4 md:p-8">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Provést uzávěrku</CardTitle>
+            <CardDescription>Vyberte datum a spusťte uzávěrku.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full"
+            />
+            <Button onClick={handleCloseout} disabled={isLoading} className="w-full">
+              {isLoading ? 'Provádím...' : 'Spustit uzávěrku'}
+            </Button>
+            {summary && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold">{summary.message}</h3>
+                <p>Celkové tržby: {formatCurrency(summary.totalRevenue)}</p>
+                <p>Počet uzavřených transakcí: {summary.closedCount}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
+}
