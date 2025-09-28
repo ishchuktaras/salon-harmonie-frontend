@@ -17,7 +17,7 @@ const CookieConsentBanner = () => {
         <CardHeader>
           <CardTitle>Vaše soukromí je pro nás důležité</CardTitle>
           <CardDescription>
-            Používáme cookies, abychom vylepšili váš zážitek z prohlížení. Více informací naleznete v našich <Link href="/zasady-ochrany-osobnich-udaju" className="underline">zásadách ochrany osobních údajů</Link>.
+            Používáme cookies, abychom vylepšili váš zážitek z prohlížení. Více informací naleznete v našich <Link href="/privacy-policy-cz" className="underline">zásadách ochrany osobních údajů</Link>.
           </CardDescription>
         </CardHeader>
         <CardContent>
