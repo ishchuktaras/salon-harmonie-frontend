@@ -22,7 +22,7 @@ const services = [
     duration: 60,
     price: 800,
     description: "Uvolňující masáž celého těla s aromatickými oleji",
-    image: "/placeholder.svg?height=200&width=300",
+    image: "/img/salon_harmonie_1.jpeg",
   },
   {
     id: "facial",
@@ -30,7 +30,7 @@ const services = [
     duration: 90,
     price: 1200,
     description: "Kompletní péče o pleť s čištěním a hydratací",
-    image: "/placeholder.svg?height=200&width=300",
+    image: "/img/salon_harmonie_2.jpeg",
   },
   {
     id: "sauna",
@@ -38,7 +38,7 @@ const services = [
     duration: 60,
     price: 300,
     description: "Relaxace v tradiční finské sauně",
-    image: "/placeholder.svg?height=200&width=300",
+    image: "/img/salon_harmonie_3.jpeg",
   },
   {
     id: "aromatherapy",
@@ -46,7 +46,7 @@ const services = [
     duration: 45,
     price: 600,
     description: "Terapie s esenciálními oleji pro tělo i duši",
-    image: "/placeholder.svg?height=200&width=300",
+    image: "/img/salon_harmonie_2.jpeg",
   },
 ]
 
