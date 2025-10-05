@@ -1,7 +1,5 @@
-// src/lib/auth.ts
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
 
 const secretKey = process.env.JWT_SECRET!;
 const key = new TextEncoder().encode(secretKey);
@@ -24,5 +22,10 @@ export async function decrypt(input: string): Promise<any> {
 export async function getSession() {
   const session = cookies().get('token')?.value;
   if (!session) return null;
-  return await decrypt(session);
+  try {
+    return await decrypt(session);
+  } catch (error) {
+    console.error("Failed to decrypt session:", error);
+    return null;
+  }
 }

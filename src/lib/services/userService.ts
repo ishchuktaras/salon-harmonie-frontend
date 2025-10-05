@@ -1,6 +1,5 @@
-// src/lib/services/userService.ts
 import prisma from '@/lib/prisma';
-import { Prisma, User } from '@prisma/client';
+import type { Prisma, User } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 export const findUserByEmail = async (email: string): Promise<User | null> => {

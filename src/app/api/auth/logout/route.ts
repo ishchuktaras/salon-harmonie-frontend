@@ -1,19 +1,9 @@
-import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
+// src/app/api/auth/logout/route.ts
+
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 export async function POST() {
-  try {
-    const cookieStore = cookies()
-
-    // Clear the authentication cookie
-    cookieStore.delete("token")
-
-    return NextResponse.json({
-      success: true,
-      message: "Successfully logged out",
-    })
-  } catch (error) {
-    console.error("[v0] Logout API error:", error)
-    return NextResponse.json({ error: "Failed to logout" }, { status: 500 })
-  }
+  cookies().set("token", "", { httpOnly: true, expires: new Date(0) });
+  return NextResponse.json({ message: "Odhlášení úspěšné" });
 }

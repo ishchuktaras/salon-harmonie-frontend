@@ -1,4 +1,3 @@
-// src/app/api/auth/login/route.ts
 import { NextResponse } from 'next/server';
 import { findUserByEmail } from '@/lib/services/userService';
 import { encrypt } from '@/lib/auth';
@@ -19,7 +18,7 @@ export async function POST(req: Request) {
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hodina
     const session = await encrypt({ user: userPayload, expires });
 
-    cookies().set('token', session, { httpOnly: true, expires });
+    cookies().set('token', session, { httpOnly: true, secure: true, expires, sameSite: 'lax' });
     
     return NextResponse.json(userPayload);
   } catch (error) {
