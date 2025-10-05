@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import CallbackClient from './callback-client.tsx'; 
+import CallbackClient from './callback-client'; 
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export default function AuthCallbackPage() {
