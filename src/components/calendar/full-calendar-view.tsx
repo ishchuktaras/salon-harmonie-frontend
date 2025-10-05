@@ -1,3 +1,5 @@
+// src/components/calendar/full-calendar-view.tsx
+
 "use client";
 
 import FullCalendar from '@fullcalendar/react';

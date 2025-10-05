@@ -1,5 +1,3 @@
-// src/app/booking/page.tsx
-
 "use client"
 
 import { useState } from "react"
@@ -14,6 +12,7 @@ import { Leaf, Clock, User, CheckCircle, ArrowRight } from "lucide-react"
 import { format } from "date-fns"
 import { cs } from "date-fns/locale"
 import Link from "next/link"
+import "react-day-picker/dist/style.css" // <-- KLÍČOVÁ OPRAVA: Import stylů pro kalendář
 
 const services = [
   {
@@ -57,22 +56,9 @@ const therapists = [
 ]
 
 const timeSlots = [
-  "09:00",
-  "09:30",
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "14:00",
-  "14:30",
-  "15:00",
-  "15:30",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
+  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00",
+  "12:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30",
+  "17:00", "17:30",
 ]
 
 export default function BookingPage() {
@@ -88,15 +74,11 @@ export default function BookingPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
 
   const handleNext = () => {
-    if (step < 4) {
-      setStep(step + 1)
-    }
+    if (step < 4) setStep(step + 1)
   }
 
   const handlePrevious = () => {
-    if (step > 1) {
-      setStep(step - 1)
-    }
+    if (step > 1) setStep(step - 1)
   }
 
   const handleSubmit = () => {
@@ -106,16 +88,11 @@ export default function BookingPage() {
 
   const canProceed = () => {
     switch (step) {
-      case 1:
-        return selectedService
-      case 2:
-        return selectedTherapist
-      case 3:
-        return selectedDate && selectedTime
-      case 4:
-        return clientName && clientPhone && clientEmail
-      default:
-        return false
+      case 1: return selectedService
+      case 2: return selectedTherapist
+      case 3: return selectedDate && selectedTime
+      case 4: return clientName && clientPhone && clientEmail
+      default: return false
     }
   }
 
@@ -172,7 +149,6 @@ export default function BookingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50 to-amber-50">
-      {/* Header */}
       <header className="border-b border-stone-200 bg-white/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <Link href="/" className="flex items-center space-x-2">
@@ -189,14 +165,8 @@ export default function BookingPage() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          {/* Progress indicator */}
           <div className="flex items-center justify-center space-x-4 mb-8">
-            {[
-              { step: 1, label: "Služba" },
-              { step: 2, label: "Terapeut" },
-              { step: 3, label: "Datum & Čas" },
-              { step: 4, label: "Kontakt" },
-            ].map((item, index) => (
+            {[{ step: 1, label: "Služba" }, { step: 2, label: "Terapeut" }, { step: 3, label: "Datum & Čas" }, { step: 4, label: "Kontakt" }].map((item, index) => (
               <div key={item.step} className="flex items-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
@@ -228,23 +198,12 @@ export default function BookingPage() {
             </CardHeader>
 
             <CardContent className="space-y-6">
-              {/* Step 1: Service Selection */}
               {step === 1 && (
                 <div className="grid md:grid-cols-2 gap-4">
                   {services.map((service) => (
-                    <Card
-                      key={service.id}
-                      className={`cursor-pointer transition-all hover:shadow-md ${
-                        selectedService === service.id ? "ring-2 ring-amber-500 bg-amber-50" : ""
-                      }`}
-                      onClick={() => setSelectedService(service.id)}
-                    >
+                    <Card key={service.id} className={`cursor-pointer transition-all hover:shadow-md ${selectedService === service.id ? "ring-2 ring-amber-500 bg-amber-50" : ""}`} onClick={() => setSelectedService(service.id)}>
                       <div className="aspect-video relative overflow-hidden rounded-t-lg">
-                        <img
-                          src={service.image || "/placeholder.svg"}
-                          alt={service.name}
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={service.image || "/placeholder.svg"} alt={service.name} className="w-full h-full object-cover" />
                       </div>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-2">
@@ -262,17 +221,10 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* Step 2: Therapist Selection */}
               {step === 2 && (
                 <div className="grid md:grid-cols-3 gap-4">
                   {therapists.map((therapist) => (
-                    <Card
-                      key={therapist.id}
-                      className={`cursor-pointer transition-all hover:shadow-md ${
-                        selectedTherapist === therapist.id ? "ring-2 ring-amber-500 bg-amber-50" : ""
-                      }`}
-                      onClick={() => setSelectedTherapist(therapist.id)}
-                    >
+                    <Card key={therapist.id} className={`cursor-pointer transition-all hover:shadow-md ${selectedTherapist === therapist.id ? "ring-2 ring-amber-500 bg-amber-50" : ""}`} onClick={() => setSelectedTherapist(therapist.id)}>
                       <CardContent className="p-6 text-center">
                         <div className="w-16 h-16 bg-stone-200 rounded-full flex items-center justify-center mx-auto mb-4">
                           <User className="w-8 h-8 text-stone-600" />
@@ -285,7 +237,6 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* Step 3: Date and Time Selection */}
               {step === 3 && (
                 <div className="grid lg:grid-cols-2 gap-8">
                   <div>
@@ -302,13 +253,7 @@ export default function BookingPage() {
                     <Label className="text-base font-medium mb-4 block">Dostupné časy</Label>
                     <div className="grid grid-cols-3 gap-2">
                       {timeSlots.map((time) => (
-                        <Button
-                          key={time}
-                          variant={selectedTime === time ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedTime(time)}
-                          className={selectedTime === time ? "bg-amber-700 hover:bg-amber-800" : ""}
-                        >
+                        <Button key={time} variant={selectedTime === time ? "default" : "outline"} size="sm" onClick={() => setSelectedTime(time)} className={selectedTime === time ? "bg-amber-700 hover:bg-amber-800" : ""}>
                           {time}
                         </Button>
                       ))}
@@ -317,51 +262,27 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* Step 4: Contact Information */}
               {step === 4 && (
                 <div className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="name">Jméno a příjmení *</Label>
-                      <Input
-                        id="name"
-                        value={clientName}
-                        onChange={(e) => setClientName(e.target.value)}
-                        placeholder="Vaše jméno"
-                      />
+                      <Input id="name" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Vaše jméno" />
                     </div>
                     <div>
                       <Label htmlFor="phone">Telefon *</Label>
-                      <Input
-                        id="phone"
-                        value={clientPhone}
-                        onChange={(e) => setClientPhone(e.target.value)}
-                        placeholder="+420 123 456 789"
-                      />
+                      <Input id="phone" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} placeholder="+420 123 456 789" />
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="email">E-mail *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={clientEmail}
-                      onChange={(e) => setClientEmail(e.target.value)}
-                      placeholder="vas.email@example.com"
-                    />
+                    <Input id="email" type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="vas.email@example.com" />
                   </div>
                   <div>
                     <Label htmlFor="notes">Poznámky (volitelné)</Label>
-                    <Textarea
-                      id="notes"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Speciální požadavky, alergie, preference..."
-                      rows={3}
-                    />
+                    <Textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Speciální požadavky, alergie, preference..." rows={3} />
                   </div>
 
-                  {/* Booking Summary */}
                   <div className="bg-stone-50 p-4 rounded-lg">
                     <h3 className="font-serif font-semibold text-stone-800 mb-3">Shrnutí rezervace</h3>
                     <div className="space-y-2 text-sm">
@@ -375,9 +296,7 @@ export default function BookingPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-stone-600">Datum:</span>
-                        <span className="font-medium">
-                          {selectedDate && format(selectedDate, "PPP", { locale: cs })}
-                        </span>
+                        <span className="font-medium">{selectedDate && format(selectedDate, "PPP", { locale: cs })}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-stone-600">Čas:</span>
@@ -392,16 +311,11 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* Navigation buttons */}
               <div className="flex justify-between pt-6 border-t border-stone-200">
                 <Button variant="outline" onClick={handlePrevious} disabled={step === 1}>
                   Zpět
                 </Button>
-                <Button
-                  onClick={step === 4 ? handleSubmit : handleNext}
-                  disabled={!canProceed()}
-                  className="bg-amber-700 hover:bg-amber-800"
-                >
+                <Button onClick={step === 4 ? handleSubmit : handleNext} disabled={!canProceed()} className="bg-amber-700 hover:bg-amber-800">
                   {step === 4 ? "Potvrdit rezervaci" : "Další"}
                 </Button>
               </div>

@@ -1,0 +1,179 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Tento blok definuje připojení k databázi.
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tento blok říká Prismě, jakého klienta má generovat.
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Zde definujeme naše datové modely.
+
+// Model pro všechny uživatele systému (zaměstnance)
+model User {
+  id                      Int            @id @default(autoincrement())
+  email                   String         @unique
+  firstName               String
+  lastName                String
+  passwordHash            String
+  role                    Role
+  createdAt               DateTime       @default(now())
+  // Vztahy
+  reservationsAsTherapist Reservation[]  @relation("TherapistReservations")
+  services                Service[]
+  workSchedules           WorkSchedule[]
+  timeBlocks              TimeBlock[]
+}
+
+// Model pro klienty salonu
+model Client {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  firstName    String
+  lastName     String
+  phone        String?
+  pohodaId     String?       @unique
+  createdAt    DateTime      @default(now())
+  // Vztahy
+  reservations Reservation[] @relation("ClientReservations")
+  transactions Transaction[]
+  orders       Order[]
+}
+
+// Model pro rezervace
+model Reservation {
+  id          Int          @id @default(autoincrement())
+  startTime   DateTime
+  endTime     DateTime
+  status      String       @default("confirmed")
+  notes       String?
+  createdAt   DateTime     @default(now())
+  // Vztahy
+  therapist   User         @relation("TherapistReservations", fields: [therapistId], references: [id])
+  therapistId Int
+  client      Client       @relation("ClientReservations", fields: [clientId], references: [id])
+  clientId    Int
+  service     Service      @relation(fields: [serviceId], references: [id])
+  serviceId   Int
+  transaction Transaction?
+}
+
+// Model pro nabízené služby
+model Service {
+  id           Int           @id @default(autoincrement())
+  name         String        @unique
+  description  String?
+  price        Int
+  duration     Int
+  createdAt    DateTime      @default(now())
+  therapists   User[]
+  reservations Reservation[]
+}
+
+// MODEL pro Transakce (účtenky)
+model Transaction {
+  id            Int               @id @default(autoincrement())
+  total         Int
+  paymentMethod String
+  status        String            @default("COMPLETED")
+  createdAt     DateTime          @default(now())
+  clientId      Int
+  client        Client            @relation(fields: [clientId], references: [id])
+  pohodaId      String?           @unique
+  reservationId Int?              @unique
+  reservation   Reservation?      @relation(fields: [reservationId], references: [id])
+  items         TransactionItem[]
+}
+
+// MODEL pro Položky na účtence
+model TransactionItem {
+  id            Int         @id @default(autoincrement())
+  name          String
+  price         Int
+  quantity      Int         @default(1)
+  pohodaId      String?     @unique
+  transactionId Int
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  serviceId     Int?
+  productId     Int?
+  product       Product?    @relation(fields: [productId], references: [id])
+}
+
+// MODEL pro pracovní dobu
+model WorkSchedule {
+  id          Int    @id @default(autoincrement())
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  therapist   User   @relation(fields: [therapistId], references: [id])
+  therapistId Int
+}
+
+// MODEL pro jednorázové blokace
+model TimeBlock {
+  id          Int      @id @default(autoincrement())
+  startTime   DateTime
+  endTime     DateTime
+  reason      String?
+  therapist   User     @relation(fields: [therapistId], references: [id])
+  therapistId Int
+}
+
+// MODEL pro produkty v e-shopu
+model Product {
+  id               Int               @id @default(autoincrement())
+  name             String            @unique
+  description      String?
+  price            Int
+  stockQuantity    Int               @default(0)
+  pohodaId         String?           @unique
+  createdAt        DateTime          @default(now())
+  transactionItems TransactionItem[]
+  orderItems       OrderItem[]
+}
+
+// MODEL pro Objednávky
+model Order {
+  id        Int      @id @default(autoincrement())
+  total     Int
+  status    String   @default("PENDING") // PENDING, PAID, SHIPPED, CANCELED
+  createdAt DateTime @default(now())
+
+  client   Client @relation(fields: [clientId], references: [id])
+  clientId Int
+
+  items OrderItem[]
+}
+
+// MODEL pro Položky v objednávce
+model OrderItem {
+  id       Int @id @default(autoincrement())
+  quantity Int
+  price    Int // Cena produktu v době nákupu
+
+  order   Order @relation(fields: [orderId], references: [id])
+  orderId Int
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+}
+
+// Výčet rolí pro zaměstnance
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TERAPEUT
+  RECEPCNI
+  ASISTENT
+  KOORDINATOR
+  MASER
+  MANAGER
+  ESHOP_SPRAVCE
+  KLIENT
+}
+
